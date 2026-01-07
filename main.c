@@ -1,3 +1,5 @@
+#include "defs.h"
+#include "tll.h"
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
@@ -13,43 +15,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-#define DEV_NAME_LEN 128
-#define HOST_IP "192.168.1.10"
-
-#define error(...) _error(__FILE__, __LINE__, __VA_ARGS__)
-#define debug(...) _debug(__FILE__, __LINE__, __VA_ARGS__)
-
-typedef struct eth_frame_s
-{
-    uint8_t dmac[6];
-    uint8_t smac[6];
-    uint16_t ether_type;
-    uint8_t payload[];
-
-} __attribute__((packed)) eth_frame_t;
-
-typedef struct arp_frame_s
-{
-    uint16_t htype;
-    uint16_t ptype;
-    uint8_t hlen;
-    uint8_t plen;
-    uint16_t oper;
-    uint8_t sha[6];
-    uint8_t spa[4];
-    uint8_t tha[6];
-    uint8_t tpa[4];
-
-} __attribute__((packed)) arp_frame_t;
-
-typedef struct tap_s
-{
-    int fd;
-    char name[DEV_NAME_LEN];
-    char addr[128];
-    struct sockaddr saddr;
-    bool valid;
-} tap_t;
+tll(arp_record_t) arp_cache_ll;
 
 void
 _error(const char *f, int line, const char *fmt, ...)
@@ -71,6 +37,17 @@ _debug(const char *f, int line, const char *fmt, ...)
     vsnprintf(buf, 4096, fmt, args);
     va_end(args);
     fprintf(stderr, "[%s:%d][DEBUG]: %s\n", f, line, buf);
+}
+
+int
+tap_write(tap_t *tap, size_t n, uint8_t buf[n])
+{
+    int bytes_write = write(tap->fd, buf, n);
+    if (bytes_write != n)
+    {
+        error("Failed to send, sent %d, needed %d", bytes_write, n);
+    }
+    return bytes_write;
 }
 
 int
@@ -147,22 +124,99 @@ is_eth_arp(eth_frame_t *eth)
     return false;
 }
 
-int
-process_arp(arp_frame_t *arp_hdr)
+arp_record_t *
+arp_cache_hit(arp_frame_t *arp_hdr)
 {
+    tll_foreach(arp_cache_ll, arp_rec)
+    {
+        if (arp_rec->item.ptype == ntohs(arp_hdr->ptype)
+            && ADDR(arp_hdr->spa) == SOCK_ADDR(arp_rec->item.saddr))
+        {
+            return &arp_rec->item;
+        }
+    }
+
+    return NULL;
+}
+
+void
+merge_arp_cache(tap_t *tap, arp_frame_t *arp_hdr)
+{
+    arp_record_t arp_rec = { 0 };
+    arp_record_t *cache = arp_cache_hit(arp_hdr);
+    if (cache != NULL)
+    {
+        memcpy(&arp_rec, cache, sizeof(arp_rec));
+    }
+    else
+    {
+        arp_rec.hwt = ntohs(arp_hdr->htype);
+        arp_rec.ptype = ntohs(arp_hdr->ptype);
+        struct sockaddr saddr;
+        if (arp_rec.hwt == 1)
+        {
+            struct sockaddr_in sin = {0};
+            memcpy(&sin.sin_addr, arp_hdr->spa, sizeof(sin.sin_addr));
+            memcpy(&saddr, &sin, sizeof(saddr));
+        }
+        memcpy(&arp_rec.saddr, &saddr, sizeof(arp_rec.saddr));
+    }
+
+    strcpy(arp_rec.tif, tap->name);
+
+    memcpy(&arp_rec.hwa, arp_hdr->sha, sizeof(arp_rec.hwa));
+}
+
+inline bool
+cmp_hw_addr(uint8_t hw1[6], uint8_t hw2[6])
+{
+    bool flag = true;
+    for (int i = 0; i < 6; ++i)
+    {
+        flag &= hw1[i] == hw2[i];
+    }
+
+    return flag;
+}
+
+int
+process_arp(tap_t *tap, arp_frame_t *arp_hdr)
+{
+    bool merge_flag;
     if (ntohs(arp_hdr->htype) == 1)
     {
         if (ntohs(arp_hdr->ptype) == 0x0800 && arp_hdr->plen == 4)
         {
-            char net_ip[128] = { 0 };
-            struct in_addr saddr;
-            saddr.s_addr = (uint32_t)(*(uint32_t *)(arp_hdr->tpa));
-            strcpy(net_ip, inet_ntoa(saddr));
-            if (strncmp(HOST_IP, net_ip, sizeof(HOST_IP)) == 0)
+            merge_flag = false;
+            if (arp_cache_hit(arp_hdr))
             {
-                debug("addres of mine");
+                merge_flag = true;
+                merge_arp_cache(tap, arp_hdr);
             }
-            // debug("%s", net_ip);
+
+            // if (ADDR(arp_hdr->tpa) == TAP_ADDR(tap))
+            {
+                if (merge_flag == false)
+                {
+                    merge_arp_cache(tap, arp_hdr);
+                }
+
+                if (ntohs(arp_hdr->oper) == ARP_REQUEST)
+                {
+                    uint8_t tmp_spa[arp_hdr->plen];
+                    uint8_t tmp_sha[arp_hdr->hlen];
+                    memcpy(&tmp_spa, arp_hdr->spa, sizeof(tmp_spa));
+                    memcpy(&tmp_sha, arp_hdr->sha, sizeof(tmp_sha));
+                        
+
+                    memcpy(arp_hdr->spa, arp_hdr->tpa, sizeof(arp_hdr->spa));
+                    memcpy(arp_hdr->sha, tap->hwaddr.sa_data, sizeof(arp_hdr->sha));
+                    memcpy(arp_hdr->tpa, tmp_spa, sizeof(arp_hdr->tpa));
+                    memcpy(arp_hdr->tha, tmp_sha, sizeof(arp_hdr->tha));
+
+                    arp_hdr->oper = ntohs(ARP_REPLY);
+                }
+            }
         }
     }
     return 0;
@@ -193,10 +247,57 @@ set_tap_address(const char *dev)
     {
         error("Failed to set tap address");
         close(socketfd);
+        return -1;
     }
 
     close(socketfd);
 
+    return 0;
+}
+
+int
+set_tap_hwa(tap_t *tap)
+{
+    int socketfd = socket(AF_INET, SOCK_STREAM, 0);
+    struct ifreq ifr = {0};
+    // 2a:e9:ea:46:21:73
+    uint8_t mac[6];
+    mac[0] = 0x2a;
+    mac[1] = 0xe9;
+    mac[2] = 0xea;
+    mac[3] = 0x46;
+    mac[4] = 0x21;
+    mac[5] = 0x77;
+
+    strcpy(ifr.ifr_name, tap->name);
+    memcpy(ifr.ifr_hwaddr.sa_data, mac, sizeof(mac));
+    ifr.ifr_hwaddr.sa_family = 1;
+    if (ioctl(socketfd, SIOCSIFHWADDR, &ifr) < 0)
+    {
+        error("failed");
+        close(socketfd);
+        return -1;
+    }
+    close(socketfd);
+    return 0;
+}
+
+int
+get_tap_hwa(tap_t *tap)
+{
+    int socketfd = socket(AF_INET, SOCK_STREAM, 0);
+    struct ifreq ifr = {0};
+
+    strcpy(ifr.ifr_name, tap->name);
+
+    if (ioctl(socketfd, SIOCGIFHWADDR, &ifr) < 0)
+    {
+        close(socketfd);
+        return -1;
+    }
+
+    memcpy(&tap->hwaddr, &ifr.ifr_hwaddr, sizeof(tap->hwaddr));
+    close(socketfd);
     return 0;
 }
 
@@ -266,6 +367,7 @@ tap_set_addr(tap_t *tap, const char *host_ip)
 int
 main()
 {
+    // https://stackoverflow.com/questions/79758511/get-tap-device-mac-address
     tap_t tap = init_tap("tap%d");
     if (tap.valid == false)
     {
@@ -282,11 +384,13 @@ main()
     {
         error("Failed to up tap dervice");
     }
+    set_tap_hwa(&tap);
+    get_tap_hwa(&tap);
 
     while (1)
     {
-        uint8_t tmp_buf[4096];
-        int bytes_read = tap_read(&tap, 4096, tmp_buf);
+        uint8_t tmp_buf[BUF_READ_LEN];
+        int bytes_read = tap_read(&tap, BUF_READ_LEN, tmp_buf);
 
         if (bytes_read < 0)
         {
@@ -296,7 +400,17 @@ main()
         eth_frame_t *eth_hdr = (eth_frame_t *)tmp_buf;
         if (is_eth_arp(eth_hdr))
         {
-            process_arp((arp_frame_t *)eth_hdr->payload);
+            bool arp_request = ntohs(((arp_frame_t*)eth_hdr->payload)->oper) == ARP_REQUEST;
+            process_arp(&tap, (arp_frame_t *)eth_hdr->payload);
+            if (arp_request == true)
+            {
+                arp_frame_t ans_arp;
+                memcpy(&ans_arp, eth_hdr->payload, sizeof(ans_arp));
+
+                memcpy(eth_hdr->dmac, ((arp_frame_t*)eth_hdr->payload)->tha, sizeof(eth_hdr->dmac));
+                memcpy(eth_hdr->smac, ((arp_frame_t*)eth_hdr->payload)->sha, sizeof(eth_hdr->smac));
+                tap_write(&tap, sizeof(eth_frame_t) + sizeof(arp_frame_t), (uint8_t*)eth_hdr);
+            }
         }
     }
 
