@@ -11,6 +11,8 @@ SRC := $(wildcard $(addsuffix /*.c,$(SRCDIRS)))
 OBJ := $(patsubst %.c,$(BUILD_DIR)/%.o,$(notdir $(SRC)))
 DEPS := $(patsubst %.c,$(BUILD_DIR)/%.d,$(notdir $(SRC)))
 
+CPP := $(BUILD_DIR)/main.txt
+
 BEAR_OPTS :=--output $(TOP_DIR)/compile_commands.json
 BEAR := bear $(BEAR_OPTS) --
 
@@ -39,6 +41,9 @@ $(PROGRAM): $(OBJ)
 $(OBJ): $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+
+$(CPP): $(BUILD_DIR)/%.txt: %.c
+	$(CC) $(CPPFLAGS) -E $< > $@
 
 run:
 	$(PROGRAM) $(ARGS)

@@ -1,10 +1,10 @@
 #ifndef __ARP__
 #define __ARP__
 
-#include "net/ethernet.h"
-#include "defs.h"
-#include "tll.h"
 #include "eth.h"
+#include "net/ethernet.h"
+#include "netdev.h"
+#include "tll.h"
 #include "tuntap.h"
 
 typedef enum arp_codes_e
@@ -21,28 +21,30 @@ typedef struct arp_hdr_s
     uint8_t hlen;
     uint8_t plen;
     uint16_t oper;
-    uint8_t sha[ETH_ALEN];
-    uint8_t spa[4];
-    uint8_t tha[ETH_ALEN];
-    uint8_t tpa[4];
+    mac_t sha;
+    uint32_t spa;
+    mac_t tha;
+    uint32_t tpa;
 
 } __attribute__((packed)) arp_hdr_t;
 
 typedef struct arp_record_s
 {
-    struct sockaddr saddr;
+    uint32_t addr;
     uint16_t ptype;
     uint16_t hwt;
-    uint8_t hwa[ETH_ALEN];
+    mac_t hwa;
     uint32_t flags;
     uint32_t mask;
-    char tif[IF_NAMESIZE];
 } arp_record_t;
 
 typedef tll_type(arp_record_t, arp_cache_s) arp_cache_t;
 
-int arp_cache_merge(arp_cache_t cache, const arp_hdr_t *frame, const tap_t *tap);
-arp_record_t *arp_cache_hit(arp_cache_t cache, const arp_hdr_t *arp_hdr);
-int arp_process(const tap_t *tap, const arp_hdr_t *arp_hdr);
+int arp_cache_update(arp_cache_t *cache, arp_record_t *arp_record,
+                     const arp_hdr_t *frame);
+int arp_cache_merge(arp_cache_t *cache, const arp_hdr_t *frame);
+arp_record_t *arp_cache_hit(const arp_cache_t *cache,
+                            const arp_hdr_t *arp_hdr);
+int arp_process(const netdev_t *netdev, const arp_hdr_t *arp_hdr);
 
 #endif // __ARP__

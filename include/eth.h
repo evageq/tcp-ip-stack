@@ -5,15 +5,18 @@
 #include <net/ethernet.h>
 #include <stdbool.h>
 
+
+typedef uint8_t mac_t[ETH_ALEN];
+
 typedef struct eth_frame_s
 {
-    uint8_t dmac[ETH_ALEN];
-    uint8_t smac[ETH_ALEN];
+    mac_t dmac;
+    mac_t smac;
     uint16_t ether_type;
     uint8_t payload[];
 
 } __attribute__((packed)) eth_frame_t;
 
-bool is_eth_arp(eth_frame_t *eth);
+int eth_type(const eth_frame_t *frame);
 
 #endif // __ETH__

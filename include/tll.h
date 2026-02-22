@@ -8,12 +8,12 @@
 #define TLL_PASTE(a, b) TLL_PASTE2(a, b)
 
 /* Utility macro to generate a list element struct with a unique struct tag */
-#define TLL_UNIQUE_INNER_STRUCT(TYPE, ID)       \
-    struct TLL_PASTE(__tllist_, ID)             \
-    {                                           \
-        TYPE item;                              \
-        struct TLL_PASTE(__tllist_, ID) * prev; \
-        struct TLL_PASTE(__tllist_, ID) * next; \
+#define TLL_UNIQUE_INNER_STRUCT(TYPE, ID)                        \
+    struct TLL_PASTE(TLL_PASTE(__tllist_, TYPE), ID)             \
+    {                                                            \
+        TYPE item;                                               \
+        struct TLL_PASTE(TLL_PASTE(__tllist_, TYPE), ID) * prev; \
+        struct TLL_PASTE(TLL_PASTE(__tllist_, TYPE), ID) * next; \
     } *head, *tail;
 
 /*
