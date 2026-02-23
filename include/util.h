@@ -28,11 +28,11 @@ extern bool SHELL_DEBUG;
 
 #define LENGTH(a) (sizeof(a) / sizeof(a[0]))
 
-#define MAX(a, b)                 \
-    ({                            \
-        __typeof__((a)) _a = (a); \
-        __typeof__((b)) _b = (b); \
-        _a > _b ? _a : _b;        \
+#define MAX(a, b)                  \
+    ({                             \
+        __typeof__((a)) __a = (a); \
+        __typeof__((b)) __b = (b); \
+        __a > __b ? __a : __b;     \
     })
 #define MIN(a, b)                 \
     ({                            \
@@ -41,16 +41,17 @@ extern bool SHELL_DEBUG;
         _a < _b ? _a : _b;        \
     })
 
-#define SWAP(a, b)                               \
-    do                                           \
-    {                                            \
-        __typeof__(a) _a = (a);                  \
-        __typeof__(b) _b = (b);                  \
-        size_t sz = MIN(sizeof(_a), sizeof(_b)); \
-        uint8_t tmp[sz];                         \
-        memcpy(tmp, _a, sz);                     \
-        memcpy(_a, _b, sz);                      \
-        memcpy(_b, tmp, sz);                     \
+#define SWAP(a, b)                                 \
+    do                                             \
+    {                                              \
+        __typeof__(a) _a = (a);                    \
+        __typeof__(b) _b = (b);                    \
+        assert(sizeof(*_a) == sizeof(*_b));        \
+        size_t sz = sizeof(*_a);                   \
+        uint8_t tmp[sz];                           \
+        memcpy((uint8_t *)tmp, (uint8_t *)_a, sz); \
+        memcpy((uint8_t *)_a, (uint8_t *)_b, sz);  \
+        memcpy((uint8_t *)_b, (uint8_t *)tmp, sz); \
     } while (0)
 
 void _error(const char *f, int line, const char *fmt, ...);

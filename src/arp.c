@@ -27,8 +27,12 @@ arp_cache_hit(const arp_cache_t *cache, const arp_hdr_t *frame)
 
 int
 arp_cache_update(arp_cache_t *cache, arp_record_t *arp_record,
-                 const arp_hdr_t *frame)
+                 const arp_hdr_t *hdr)
 {
+    arp_record->hwt = ntohs(hdr->htype);
+    arp_record->ptype = ntohs(hdr->ptype);
+    arp_record->addr = hdr->spa;
+    memcpy(&arp_record->hwa, hdr->sha, sizeof(arp_record->hwa));
 
     return 0;
 }
@@ -38,11 +42,7 @@ arp_cache_add(arp_cache_t *cache, const arp_hdr_t *hdr)
 {
     arp_record_t arp_record;
 
-    arp_record.hwt = ntohs(hdr->htype);
-    arp_record.ptype = ntohs(hdr->ptype);
-    arp_record.addr = hdr->spa;
-    memcpy(&arp_record.hwa, hdr->sha, sizeof(arp_record.hwa));
-
+    arp_cache_update(cache, &arp_record, hdr);
     tll_push_back(*cache, arp_record);
 
     return 0;
@@ -85,6 +85,11 @@ arp_process(const netdev_t *host, const arp_hdr_t *arp_hdr)
                 {
                     size_t frame_sz = sizeof(eth_frame_t) + sizeof(arp_hdr_t);
                     eth_frame_t *frame = malloc(frame_sz);
+
+                    memcpy(frame->dmac, arp_hdr->sha, sizeof(mac_t));
+                    memcpy(frame->smac, host->mac, sizeof(mac_t));
+                    frame->ether_type = ntohs(ETH_P_ARP);
+
                     arp_hdr_t *arp_ans = (arp_hdr_t *)frame->payload;
 
                     assert(sizeof(*arp_ans) + sizeof(*frame) == frame_sz);
@@ -92,6 +97,7 @@ arp_process(const netdev_t *host, const arp_hdr_t *arp_hdr)
 
                     SWAP(&arp_ans->spa, &arp_ans->tpa);
                     SWAP(&arp_ans->sha, &arp_ans->tha);
+                    memcpy((uint8_t*)&arp_ans->sha, (uint8_t*)host->mac, sizeof(host->mac));
                     arp_ans->oper = htons(ARP_REPLY);
 
                     tap_write(&g_tap, frame_sz, (uint8_t *)frame);

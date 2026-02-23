@@ -24,7 +24,7 @@ LDFLAGS := -fuse-ld=mold
 DEPFLAGS := -MP -MD
 COMPILE_SANITY_OPTS := -Wall -Wextra
 CPPFLAGS := $(foreach D,$(INCDIRS),-I$(D))
-CFLAGS := -g $(DEPFLAGS)
+CFLAGS := -g $(DEPFLAGS) -Wno-address-of-packed-member
 
 FILE := $(TOP_DIR)/tmp
 ARGS := $(FILE)
