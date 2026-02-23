@@ -14,8 +14,10 @@ typedef struct tap_s
     bool valid;
 } tap_t;
 
-tap_t tap_init(const char *dev, const char *addr, const char *hwaddr);
+tap_t tap_create(const char *dev, const char *addr, const char *hwaddr);
 int tap_up(const tap_t *tap);
+int tap_setaddr(const tap_t *tap);
+int tap_sethwaddr(const tap_t *tap);
 int tap_write(const tap_t *tap, size_t n, uint8_t buf[n]);
 int tap_read(const tap_t *tap, size_t n, uint8_t buf[n]);
 void tap_close(tap_t *tap);

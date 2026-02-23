@@ -20,12 +20,13 @@
 #include <unistd.h>
 
 tap_t g_tap;
+bool SHELL_DEBUG = true;
 
 int
 main()
 {
     // https://stackoverflow.com/questions/79758511/get-tap-device-mac-address
-    g_tap = tap_init("192.186.12.4", "2a:e9:ea:46:21:70", "tap%d");
+    g_tap = tap_create("192.186.12.4", "2a:e9:ea:46:21:70", "tap%d");
     if (g_tap.valid == false)
     {
         error("Failed to init tap %s", g_tap.name);
@@ -38,7 +39,7 @@ main()
 
     netdev_t host = netdev_init("192.168.12.100", "2a:e9:ea:46:21:71");
 
-    // tap up
+    tap_up(&g_tap);
 
     while (1)
     {

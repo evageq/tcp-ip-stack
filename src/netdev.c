@@ -8,7 +8,7 @@ netdev_t
 netdev_init(const char *addr, const char *hwaddr)
 {
     netdev_t dev = { .valid = false };
-    if (inet_pton(AF_INET, addr, &dev.addr) != 1)
+    if (inet_pton(AF_INET, addr, &dev.dev_addr) != 1)
     {
         error("Parsing inet address failed\n");
         return dev;

@@ -7,10 +7,12 @@
 
 typedef struct netdev_s
 {
-    uint32_t addr; // network byte order
+    struct in_addr in_addr; // network byte order
     mac_t mac;
     bool valid;
 } netdev_t;
+
+#define dev_addr in_addr.s_addr
 
 netdev_t netdev_init(const char *addr, const char *hwaddr);
 

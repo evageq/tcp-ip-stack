@@ -79,7 +79,7 @@ arp_process(const netdev_t *host, const arp_hdr_t *arp_hdr)
         {
             arp_cache_merge(&g_arp_cache, arp_hdr);
 
-            if (arp_hdr->tpa == host->addr)
+            if (arp_hdr->tpa == host->dev_addr)
             {
                 if (ntohs(arp_hdr->oper) == ARP_REQUEST)
                 {

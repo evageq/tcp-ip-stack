@@ -1,14 +1,15 @@
-#include <string.h>
-#include <arpa/inet.h>
-#include <stdint.h>
-#include <net/if.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <linux/if_tun.h>
-#include <stdio.h>
 #include "tuntap.h"
 #include "util.h"
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <linux/if_tun.h>
+#include <net/if.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 int
 tap_write(const tap_t *tap, size_t n, uint8_t buf[n])
@@ -28,8 +29,23 @@ tap_read(const tap_t *tap, size_t n, uint8_t buf[n])
     return bytes_read;
 }
 
+int
+tap_setaddr(const tap_t *tap)
+{
+    return SHELL("ip addr add %s dev tap %s", inet_ntoa(tap->netdev.in_addr),
+                 tap->name);
+}
+
+int
+tap_sethwaddr(const tap_t *tap)
+{
+    char mac_str[128];
+    return SHELL("ip link set %s address %s", tap->name,
+                 mac2str(tap->netdev.mac, LENGTH(mac_str), mac_str));
+}
+
 tap_t
-tap_init(const char *dev, const char *addr, const char *hwaddr)
+tap_create(const char *dev, const char *addr, const char *hwaddr)
 {
     tap_t tap = { .valid = false };
 
@@ -56,7 +72,20 @@ tap_init(const char *dev, const char *addr, const char *hwaddr)
 
     tap.netdev = netdev_init(addr, hwaddr);
 
+    // wait for udev events
+    // refacotr to use with libudev
+    sleep(1);
+
+    tap_setaddr(&tap);
+    tap_sethwaddr(&tap);
+
     return (tap.valid = true, tap);
+}
+
+int
+tap_up(const tap_t *tap)
+{
+    return SHELL("ip link set %s up", tap->name);
 }
 
 void
@@ -64,4 +93,3 @@ tap_close(tap_t *tap)
 {
     close(tap->fd);
 }
-

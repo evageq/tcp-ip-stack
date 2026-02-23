@@ -8,6 +8,21 @@
 #define BUF_READ_LEN 4096
 #define HOST_ADDR_LEN 128
 
+#define BUFCMDSZ 128
+
+extern bool SHELL_DEBUG;
+
+#define SHELL(s, ...)                               \
+    ({                                              \
+        char cmd[BUFCMDSZ];                         \
+        snprintf(cmd, LENGTH(cmd), s, __VA_ARGS__); \
+        if (SHELL_DEBUG == true)                    \
+        {                                           \
+            debug("exec: %s", cmd);                 \
+        }                                           \
+        system(cmd);                                \
+    })
+
 #define error(...) _error(__FILE__, __LINE__, __VA_ARGS__)
 #define debug(...) _debug(__FILE__, __LINE__, __VA_ARGS__)
 
