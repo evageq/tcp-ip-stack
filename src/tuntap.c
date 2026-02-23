@@ -32,7 +32,7 @@ tap_read(const tap_t *tap, size_t n, uint8_t buf[n])
 int
 tap_setaddr(const tap_t *tap)
 {
-    return SHELL("ip addr add %s dev tap %s", inet_ntoa(tap->netdev.in_addr),
+    return SHELL("ip addr add %s dev %s", inet_ntoa(tap->netdev.in_addr),
                  tap->name);
 }
 

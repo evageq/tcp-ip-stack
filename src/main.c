@@ -26,7 +26,7 @@ int
 main()
 {
     // https://stackoverflow.com/questions/79758511/get-tap-device-mac-address
-    g_tap = tap_create("192.186.12.4", "2a:e9:ea:46:21:70", "tap%d");
+    g_tap = tap_create("tap%d", "192.168.12.4", "2a:e9:ea:46:21:70");
     if (g_tap.valid == false)
     {
         error("Failed to init tap %s", g_tap.name);
@@ -34,7 +34,7 @@ main()
     }
     else
     {
-        debug("%s valid", g_tap.name);
+        debug("tap %s valid", g_tap.name);
     }
 
     netdev_t host = netdev_init("192.168.12.100", "2a:e9:ea:46:21:71");
