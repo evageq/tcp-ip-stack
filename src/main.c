@@ -1,5 +1,6 @@
 #include "arp.h"
 #include "eth.h"
+#include "ipv4.h"
 #include "tll.h"
 #include "tuntap.h"
 #include "util.h"
@@ -21,26 +22,39 @@
 
 tap_t g_tap;
 bool SHELL_DEBUG = true;
+netdev_t host;
 
-int
-main()
+static int
+net_init()
 {
     // https://stackoverflow.com/questions/79758511/get-tap-device-mac-address
     g_tap = tap_create("tap%d", "192.168.17.9", "2a:e9:ea:46:21:70");
     if (g_tap.valid == false)
     {
         error("Failed to init tap %s", g_tap.name);
-        exit(-1);
+        return -1;
     }
     else
     {
         debug("tap %s valid", g_tap.name);
     }
 
-    netdev_t host = netdev_init("10.0.0.4", "2a:e9:ea:46:21:71");
+    host = netdev_init("10.0.0.4", "2a:e9:ea:46:21:71");
 
     tap_up(&g_tap);
+    return 0;
+}
 
+static int
+stack_init()
+{
+    net_init();
+    return 0;
+}
+
+static int
+netdev_rx_loop()
+{
     while (1)
     {
         uint8_t frame[BUF_READ_LEN];
@@ -51,28 +65,27 @@ main()
             error("Failed tap_read");
         }
 
-        eth_frame_t *eth_hdr = (eth_frame_t *)frame;
-        int e_type = eth_type(eth_hdr);
-        switch (e_type)
-        {
-            case ETH_P_ARP:
-            {
-                arp_process(&host, (arp_hdr_t*)eth_hdr->payload);
-                break;
-            }
-            default:
-            {
-                debug("Unknown eth_type %d", e_type);
-                break;
-            }
-        }
+        netdev_receive((eth_frame_t *)frame);
     }
 
-    tap_close(&g_tap);
+    return 0;
+}
 
+static void
+stack_free()
+{
+    tap_close(&g_tap);
     fflush(stdout);
     fflush(stderr);
     getc(stdin);
+}
+
+int
+main(int argc, char *argv[])
+{
+    stack_init();
+    netdev_rx_loop();
+    stack_free();
 
     return 0;
 }

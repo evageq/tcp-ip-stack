@@ -2,10 +2,8 @@
 #define __ARP__
 
 #include "eth.h"
-#include "net/ethernet.h"
 #include "netdev.h"
 #include "tll.h"
-#include "tuntap.h"
 
 typedef enum arp_codes_e
 {
