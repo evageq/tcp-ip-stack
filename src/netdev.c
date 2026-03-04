@@ -35,7 +35,7 @@ netdev_init(const char *addr, const char *hwaddr)
     }
 
     dev.mac_len = ETH_ALEN;
-    dev.mac_head_len = sizeof(eth_frame_t);
+    dev.mac_head_len = sizeof(ethhdr_t);
 
     return (dev.valid = true, dev);
 }
@@ -73,7 +73,7 @@ netdev_send(skb_t *skb, const mac_t dst, int proto)
     const netdev_t *host = skb->dev;
     skb->mac_head = skb->data;
 
-    eth_frame_t *frame = mac_hdr(skb);
+    ethhdr_t *frame = mac_hdr(skb);
     memcpy(frame->dmac, dst, host->mac_len);
     memcpy(frame->smac, host->mac, host->mac_len);
     frame->ether_type = htons(proto);

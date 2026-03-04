@@ -6,7 +6,7 @@
 
 #define ICMP_PROTO 1
 
-typedef struct ipv4_hdr_s
+typedef struct iphdr_s
 {
     uint8_t version : 4;
     uint8_t ihl : 4;
@@ -21,10 +21,10 @@ typedef struct ipv4_hdr_s
     uint32_t saddr;
     uint32_t daddr;
 
-} __attribute__((packed)) ipv4_hdr_t;
+} __attribute__((packed)) iphdr_t;
 
 uint16_t ip_checksum();
 int ip_process(const netdev_t *dev, skb_t *skb);
-ipv4_hdr_t *ip_hdr(const skb_t *skb);
+iphdr_t *ip_hdr(const skb_t *skb);
 
 #endif // __IPV4__

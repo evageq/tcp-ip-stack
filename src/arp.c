@@ -9,14 +9,14 @@ arp_cache_t g_arp_cache;
 
 extern tap_t g_tap;
 
-inline arp_hdr_t *
+inline arphdr_t *
 arp_hdr(const skb_t *skb)
 {
-    return (arp_hdr_t *)(skb->mac_head + skb->dev->mac_head_len);
+    return (arphdr_t *)(skb->mac_head + skb->dev->mac_head_len);
 }
 
 arp_record_t *
-arp_cache_hit(const arp_cache_t *cache, const arp_hdr_t *frame)
+arp_cache_hit(const arp_cache_t *cache, const arphdr_t *frame)
 {
     tll_foreach(*cache, it)
     {
@@ -33,7 +33,7 @@ arp_cache_hit(const arp_cache_t *cache, const arp_hdr_t *frame)
 
 int
 arp_cache_update(arp_cache_t *cache, arp_record_t *arp_record,
-                 const arp_hdr_t *hdr)
+                 const arphdr_t *hdr)
 {
     arp_record->hwt = ntohs(hdr->htype);
     arp_record->ptype = ntohs(hdr->ptype);
@@ -44,7 +44,7 @@ arp_cache_update(arp_cache_t *cache, arp_record_t *arp_record,
 }
 
 static int
-arp_cache_add(arp_cache_t *cache, const arp_hdr_t *hdr)
+arp_cache_add(arp_cache_t *cache, const arphdr_t *hdr)
 {
     arp_record_t arp_record;
 
@@ -55,7 +55,7 @@ arp_cache_add(arp_cache_t *cache, const arp_hdr_t *hdr)
 }
 
 int
-arp_cache_merge(arp_cache_t *cache, const arp_hdr_t *frame)
+arp_cache_merge(arp_cache_t *cache, const arphdr_t *frame)
 {
     arp_record_t arp_record = { 0 };
     arp_record_t *cache_hit = arp_cache_hit(cache, frame);
@@ -76,7 +76,7 @@ arp_cache_merge(arp_cache_t *cache, const arp_hdr_t *frame)
 int
 arp_hdr_len(const netdev_t *dev)
 {
-    return sizeof(arp_hdr_t);
+    return sizeof(arphdr_t);
 }
 
 static skb_t *
@@ -88,7 +88,7 @@ arp_create(const netdev_t *dev, const unsigned char *spa,
     skb_reserve(skb, arp_hdr_len(dev) + mac_hdr_len(dev));
     skb->dev = (netdev_t *)dev;
     skb->protocol = ntohs(ETH_P_ARP);
-    arp_hdr_t *arp = skb_push(skb, arp_hdr_len(dev));
+    arphdr_t *arp = skb_push(skb, arp_hdr_len(dev));
     if (spa == NULL)
     {
         memcpy(&arp->spa, &dev->dev_addr, sizeof(dev->dev_addr));
@@ -130,7 +130,7 @@ int
 arp_process(const netdev_t *host, skb_t *skb)
 {
     bool is_request = false;
-    const arp_hdr_t *arp_head = arp_hdr(skb);
+    const arphdr_t *arp_head = arp_hdr(skb);
 
     if (ntohs(arp_head->htype) == 1)
     {

@@ -5,7 +5,7 @@
 inline int
 eth_type(const skb_t *skb)
 {
-    eth_frame_t *e_hdr = (eth_frame_t*)skb->data;
+    ethhdr_t *e_hdr = (ethhdr_t*)skb->data;
     return ntohs(e_hdr->ether_type);
 }
 
@@ -20,7 +20,7 @@ mac2str(const mac_t mac, size_t n, char buf[n])
 inline int
 mac_hdr_len(const netdev_t *dev)
 {
-    return sizeof(eth_frame_t);
+    return sizeof(ethhdr_t);
 }
 
 inline void *

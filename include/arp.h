@@ -12,7 +12,7 @@ typedef enum arp_codes_e
 
 } arp_codes_t;
 
-typedef struct arp_hdr_s
+typedef struct arphdr_s
 {
     uint16_t htype;
     uint16_t ptype;
@@ -24,7 +24,7 @@ typedef struct arp_hdr_s
     mac_t tha;
     uint32_t tpa;
 
-} __attribute__((packed)) arp_hdr_t;
+} __attribute__((packed)) arphdr_t;
 
 typedef struct arp_record_s
 {
@@ -39,11 +39,11 @@ typedef struct arp_record_s
 typedef tll_type(arp_record_t, arp_cache_s) arp_cache_t;
 
 int arp_cache_update(arp_cache_t *cache, arp_record_t *arp_record,
-                     const arp_hdr_t *frame);
-int arp_cache_merge(arp_cache_t *cache, const arp_hdr_t *frame);
+                     const arphdr_t *frame);
+int arp_cache_merge(arp_cache_t *cache, const arphdr_t *frame);
 arp_record_t *arp_cache_hit(const arp_cache_t *cache,
-                            const arp_hdr_t *arp_hdr);
+                            const arphdr_t *arp_hdr);
 int arp_process(const netdev_t *netdev, skb_t *skb);
-arp_hdr_t *arp_hdr(const skb_t *skb);
+arphdr_t *arp_hdr(const skb_t *skb);
 
 #endif // __ARP__
