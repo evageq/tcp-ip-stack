@@ -1,11 +1,15 @@
 #include "netdev.h"
-#include "util.h"
 #include "arp.h"
 #include "ipv4.h"
+#include "skb.h"
+#include "tuntap.h"
+#include "util.h"
 #include <arpa/inet.h>
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
+extern tap_t g_tap;
 extern netdev_t host;
 
 netdev_t
@@ -20,35 +24,59 @@ netdev_init(const char *addr, const char *hwaddr)
     int write = sscanf(hwaddr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &dev.mac[0],
                        &dev.mac[1], &dev.mac[2], &dev.mac[3], &dev.mac[4],
                        &dev.mac[5]);
+    sscanf("ff:ff:ff:ff:ff:ff", "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+           &dev.bcast_addr[0], &dev.bcast_addr[1], &dev.bcast_addr[2],
+           &dev.bcast_addr[3], &dev.bcast_addr[4], &dev.bcast_addr[5]);
+
     if (write != ETH_ALEN)
     {
         error("Failed to parse mac addr %s", hwaddr);
         return dev;
     }
+
+    dev.mac_len = ETH_ALEN;
+    dev.mac_head_len = sizeof(eth_frame_t);
+
     return (dev.valid = true, dev);
 }
 
 void
-netdev_receive(const eth_frame_t* frame)
+netdev_receive(skb_t *skb, netdev_t *host)
 {
-    eth_frame_t *eth_hdr = (eth_frame_t *)frame;
-    int e_type = eth_type(eth_hdr);
-    switch (e_type)
+    skb->dev = host;
+    skb->protocol = eth_type(skb);
+    skb->mac_head = skb->data;
+
+    switch (skb->protocol)
     {
         case ETH_P_ARP:
         {
-            arp_process(&host, (arp_hdr_t *)eth_hdr->payload);
+            arp_process(host, skb);
             break;
         }
         case ETH_P_IP:
         {
-            ip_process(&host, (ipv4_hdr_t *)eth_hdr->payload);
+            ip_process(host, skb);
             break;
         }
         default:
         {
-            debug("Unknown eth_type %d", e_type);
+            debug("Unknown packet type %d", skb->protocol);
             break;
         }
     }
+}
+
+void
+netdev_send(skb_t *skb, const mac_t dst, int proto)
+{
+    const netdev_t *host = skb->dev;
+    skb->mac_head = skb->data;
+
+    eth_frame_t *frame = mac_hdr(skb);
+    memcpy(frame->dmac, dst, host->mac_len);
+    memcpy(frame->smac, host->mac, host->mac_len);
+    frame->ether_type = htons(proto);
+
+    tap_write(&g_tap, skb->len, skb->data);
 }

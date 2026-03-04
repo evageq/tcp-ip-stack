@@ -43,6 +43,7 @@ int arp_cache_update(arp_cache_t *cache, arp_record_t *arp_record,
 int arp_cache_merge(arp_cache_t *cache, const arp_hdr_t *frame);
 arp_record_t *arp_cache_hit(const arp_cache_t *cache,
                             const arp_hdr_t *arp_hdr);
-int arp_process(const netdev_t *netdev, const arp_hdr_t *arp_hdr);
+int arp_process(const netdev_t *netdev, skb_t *skb);
+arp_hdr_t *arp_hdr(const skb_t *skb);
 
 #endif // __ARP__

@@ -9,6 +9,12 @@ arp_cache_t g_arp_cache;
 
 extern tap_t g_tap;
 
+inline arp_hdr_t *
+arp_hdr(const skb_t *skb)
+{
+    return (arp_hdr_t *)(skb->mac_head + skb->dev->mac_head_len);
+}
+
 arp_record_t *
 arp_cache_hit(const arp_cache_t *cache, const arp_hdr_t *frame)
 {
@@ -68,40 +74,82 @@ arp_cache_merge(arp_cache_t *cache, const arp_hdr_t *frame)
 }
 
 int
-arp_process(const netdev_t *host, const arp_hdr_t *arp_hdr)
+arp_hdr_len(const netdev_t *dev)
+{
+    return sizeof(arp_hdr_t);
+}
+
+static skb_t *
+arp_create(const netdev_t *dev, const unsigned char *spa,
+           const unsigned char *tpa, const unsigned char *sha,
+           const unsigned char *tha, int opcode, int htype, int ptype)
+{
+    skb_t *skb = skb_alloc(arp_hdr_len(dev) + mac_hdr_len(dev));
+    skb_reserve(skb, arp_hdr_len(dev) + mac_hdr_len(dev));
+    skb->dev = (netdev_t *)dev;
+    skb->protocol = ntohs(ETH_P_ARP);
+    arp_hdr_t *arp = skb_push(skb, arp_hdr_len(dev));
+    if (spa == NULL)
+    {
+        memcpy(&arp->spa, &dev->dev_addr, sizeof(dev->dev_addr));
+    }
+    else
+    {
+        memcpy(&arp->spa, spa, sizeof(dev->dev_addr));
+    }
+    if (tha == NULL)
+    {
+        memcpy(&arp->tha, dev->bcast_addr, dev->mac_len);
+    }
+    else
+    {
+        memcpy(&arp->tha, tha, dev->mac_len);
+    }
+
+    memcpy(&arp->tpa, tpa, sizeof(dev->dev_addr));
+    memcpy(&arp->sha, &dev->mac, dev->mac_len);
+
+    arp->oper = htons(opcode);
+    arp->htype = htons(htype);
+    arp->ptype = htons(ptype);
+
+    arp->hlen = dev->mac_len;
+    arp->plen = sizeof(dev->dev_addr);
+
+    return skb;
+}
+
+static void
+arp_send(skb_t *skb, const mac_t dst)
+{
+    skb_push(skb, skb->dev->mac_head_len);
+    netdev_send(skb, dst, ETH_P_ARP);
+}
+
+int
+arp_process(const netdev_t *host, skb_t *skb)
 {
     bool is_request = false;
-    arp_hdr_t arp_send = { 0 };
+    const arp_hdr_t *arp_head = arp_hdr(skb);
 
-    if (ntohs(arp_hdr->htype) == 1)
+    if (ntohs(arp_head->htype) == 1)
     {
-        if (ntohs(arp_hdr->ptype) == 0x0800 && arp_hdr->plen == 4)
+        if (ntohs(arp_head->ptype) == 0x0800 && arp_head->plen == 4)
         {
-            arp_cache_merge(&g_arp_cache, arp_hdr);
+            arp_cache_merge(&g_arp_cache, arp_head);
 
-            if (arp_hdr->tpa == host->dev_addr)
+            if (arp_head->tpa == host->dev_addr)
             {
-                if (ntohs(arp_hdr->oper) == ARP_REQUEST)
+                if (ntohs(arp_head->oper) == ARP_REQUEST)
                 {
-                    size_t frame_sz = sizeof(eth_frame_t) + sizeof(arp_hdr_t);
-                    eth_frame_t *frame = malloc(frame_sz);
-
-                    memcpy(frame->dmac, arp_hdr->sha, sizeof(mac_t));
-                    memcpy(frame->smac, host->mac, sizeof(mac_t));
-                    frame->ether_type = ntohs(ETH_P_ARP);
-
-                    arp_hdr_t *arp_ans = (arp_hdr_t *)frame->payload;
-
-                    assert(sizeof(*arp_ans) + sizeof(*frame) == frame_sz);
-                    memcpy(arp_ans, arp_hdr, sizeof(*arp_hdr));
-
-                    SWAP(&arp_ans->spa, &arp_ans->tpa);
-                    SWAP(&arp_ans->sha, &arp_ans->tha);
-                    memcpy((uint8_t*)&arp_ans->sha, (uint8_t*)host->mac, sizeof(host->mac));
-                    arp_ans->oper = htons(ARP_REPLY);
-
-                    tap_write(&g_tap, frame_sz, (uint8_t *)frame);
-                    free(frame);
+                    skb_t *skb;
+                    skb = arp_create(
+                        host, (unsigned char *)&host->dev_addr,
+                        (unsigned char *)&arp_head->spa,
+                        (unsigned char *)&host->mac, arp_head->sha, ARP_REPLY,
+                        ntohs(arp_head->htype), ntohs(arp_head->ptype));
+                    arp_send(skb, arp_head->sha);
+                    skb_free(skb);
                 }
             }
         }

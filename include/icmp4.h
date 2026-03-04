@@ -1,0 +1,15 @@
+#ifndef __ICMPV4__
+#define __ICMPV4__
+
+#include <stdint.h>
+
+typedef struct icmp4_s
+{
+    uint8_t type;
+    uint8_t code;
+    uint16_t csum;
+    uint8_t data[];
+
+} __attribute__((packed)) icmp4_t;
+
+#endif // __ICMPV4__

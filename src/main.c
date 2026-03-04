@@ -1,20 +1,15 @@
-#include "arp.h"
+#include "skb.h"
 #include "eth.h"
-#include "ipv4.h"
-#include "tll.h"
 #include "tuntap.h"
 #include "util.h"
 #include <arpa/inet.h>
 #include <assert.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <linux/if_tun.h>
 #include <net/if.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
@@ -57,15 +52,17 @@ netdev_rx_loop()
 {
     while (1)
     {
-        uint8_t frame[BUF_READ_LEN];
-
-        int bytes_read = tap_read(&g_tap, LENGTH(frame), frame);
+        uint8_t buf[BUF_READ_LEN];
+        int bytes_read = tap_read(&g_tap, LENGTH(buf), buf);
         if (bytes_read < 0)
         {
             error("Failed tap_read");
         }
 
-        netdev_receive((eth_frame_t *)frame);
+        skb_t *skb = skb_alloc(bytes_read);
+        memcpy(skb->data, buf, bytes_read);
+        netdev_receive(skb, &host);
+        skb_free(skb);
     }
 
     return 0;
