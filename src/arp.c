@@ -12,7 +12,7 @@ extern tap_t g_tap;
 inline arphdr_t *
 arp_hdr(const skb_t *skb)
 {
-    return (arphdr_t *)(skb->mac_head + skb->dev->mac_head_len);
+    return (arphdr_t *)skb->network_head;
 }
 
 arp_record_t *
@@ -129,7 +129,12 @@ arp_send(skb_t *skb, const mac_t dst)
 int
 arp_process(const netdev_t *host, skb_t *skb)
 {
-    bool is_request = false;
+    if (skb->len < (int)sizeof(arphdr_t))
+    {
+        debug("Short ARP packet, len %d", skb->len);
+        return -1;
+    }
+
     const arphdr_t *arp_head = arp_hdr(skb);
 
     if (ntohs(arp_head->htype) == 1)

@@ -1,6 +1,7 @@
 #ifndef __ICMPV4__
 #define __ICMPV4__
 
+#include "skb.h"
 #include <stdint.h>
 
 typedef struct icmp4_s
@@ -11,5 +12,7 @@ typedef struct icmp4_s
     uint8_t data[];
 
 } __attribute__((packed)) icmp4_t;
+
+icmp4_t *icmp_hdr(const skb_t *skb);
 
 #endif // __ICMPV4__

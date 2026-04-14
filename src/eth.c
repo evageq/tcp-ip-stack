@@ -5,7 +5,7 @@
 inline int
 eth_type(const skb_t *skb)
 {
-    ethhdr_t *e_hdr = (ethhdr_t*)skb->data;
+    ethhdr_t *e_hdr = (ethhdr_t *)skb->mac_head;
     return ntohs(e_hdr->ether_type);
 }
 

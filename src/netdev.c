@@ -44,8 +44,17 @@ void
 netdev_receive(skb_t *skb, netdev_t *host)
 {
     skb->dev = host;
-    skb->protocol = eth_type(skb);
     skb->mac_head = skb->data;
+
+    if (skb->len < host->mac_head_len)
+    {
+        debug("Short ethernet frame, len %d", skb->len);
+        return;
+    }
+
+    skb->protocol = eth_type(skb);
+    skb_pull(skb, host->mac_head_len);
+    skb->network_head = skb->data;
 
     switch (skb->protocol)
     {
