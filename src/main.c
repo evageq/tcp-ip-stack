@@ -57,10 +57,11 @@ netdev_rx_loop()
         if (bytes_read < 0)
         {
             error("Failed tap_read");
+            continue;
         }
 
         skb_t *skb = skb_alloc(bytes_read);
-        memcpy(skb->data, buf, bytes_read);
+        skb_put_data(skb, buf, bytes_read);
         netdev_receive(skb, &host);
         skb_free(skb);
     }
