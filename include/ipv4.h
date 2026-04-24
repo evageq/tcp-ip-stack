@@ -26,5 +26,8 @@ typedef struct iphdr_s
 uint16_t ip_checksum();
 int ip_process(const netdev_t *dev, skb_t *skb);
 iphdr_t *ip_hdr(const skb_t *skb);
+uint16_t checksum(void *addr, int count);
+int ip_headroom(const netdev_t *dev);
+int icmp_process(skb_t *skb);
 
 #endif // __IPV4__

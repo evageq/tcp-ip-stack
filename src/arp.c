@@ -120,10 +120,10 @@ arp_create(const netdev_t *dev, const unsigned char *spa,
 }
 
 static void
-arp_send(skb_t *skb, const mac_t dst)
+arp_send(const netdev_t *out_dev, skb_t *skb, const mac_t dst)
 {
     skb_push(skb, skb->dev->mac_head_len);
-    netdev_send(skb, dst, ETH_P_ARP);
+    netdev_send(out_dev, skb, dst, ETH_P_ARP);
 }
 
 int
@@ -153,7 +153,7 @@ arp_process(const netdev_t *host, skb_t *skb)
                         (unsigned char *)&arp_head->spa,
                         (unsigned char *)&host->mac, arp_head->sha, ARP_REPLY,
                         ntohs(arp_head->htype), ntohs(arp_head->ptype));
-                    arp_send(skb, arp_head->sha);
+                    arp_send(host, skb, arp_head->sha);
                     skb_free(skb);
                 }
             }

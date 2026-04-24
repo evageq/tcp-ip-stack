@@ -18,8 +18,9 @@ typedef struct netdev_s
 #define dev_addr in_addr.s_addr
 
 netdev_t netdev_init(const char *addr, const char *hwaddr);
-void netdev_receive(skb_t *skb, netdev_t *host);
+int netdev_receive(skb_t *skb, netdev_t *host);
 int mac_hdr_len(const netdev_t *dev);
-void netdev_send(skb_t *skb, const mac_t dst, int proto);
+void netdev_send(const netdev_t *out_dev, skb_t *skb, const mac_t dst,
+                 int proto);
 
 #endif // __NETDEV_H__

@@ -38,12 +38,13 @@ skb_alloc(size_t len)
         error("Failed to alloc skb data");
         exit(-1);
     }
+
     skb->head = skb->data = skb->tail = p;
     skb->end = skb->head + len;
     if (skb->data == NULL)
     {
         free(skb);
-        return NULL;
+        exit(-1);
     }
 
     skb->len = _skb_len(skb);

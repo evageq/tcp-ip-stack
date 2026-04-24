@@ -1,5 +1,5 @@
-#include "skb.h"
 #include "eth.h"
+#include "skb.h"
 #include "tuntap.h"
 #include "util.h"
 #include <arpa/inet.h>
@@ -52,6 +52,7 @@ netdev_rx_loop()
 {
     while (1)
     {
+        int ret = 0;
         uint8_t buf[BUF_READ_LEN];
         int bytes_read = tap_read(&g_tap, LENGTH(buf), buf);
         if (bytes_read < 0)
@@ -62,7 +63,8 @@ netdev_rx_loop()
 
         skb_t *skb = skb_alloc(bytes_read);
         skb_put_data(skb, buf, bytes_read);
-        netdev_receive(skb, &host);
+        ret = netdev_receive(skb, &host);
+        (void)ret;
         skb_free(skb);
     }
 

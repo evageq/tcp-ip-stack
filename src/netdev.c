@@ -40,7 +40,7 @@ netdev_init(const char *addr, const char *hwaddr)
     return (dev.valid = true, dev);
 }
 
-void
+int
 netdev_receive(skb_t *skb, netdev_t *host)
 {
     skb->dev = host;
@@ -49,7 +49,7 @@ netdev_receive(skb_t *skb, netdev_t *host)
     if (skb->len < host->mac_head_len)
     {
         debug("Short ethernet frame, len %d", skb->len);
-        return;
+        return -1;
     }
 
     skb->protocol = eth_type(skb);
@@ -60,26 +60,24 @@ netdev_receive(skb_t *skb, netdev_t *host)
     {
         case ETH_P_ARP:
         {
-            arp_process(host, skb);
-            break;
+            return arp_process(host, skb);
         }
         case ETH_P_IP:
         {
-            ip_process(host, skb);
-            break;
+            return ip_process(host, skb);
         }
         default:
         {
             debug("Unknown packet type %d", skb->protocol);
-            break;
+            return -1;
         }
     }
 }
 
 void
-netdev_send(skb_t *skb, const mac_t dst, int proto)
+netdev_send(const netdev_t *out_dev, skb_t *skb, const mac_t dst, int proto)
 {
-    const netdev_t *host = skb->dev;
+    const netdev_t *host = out_dev;
     skb->mac_head = skb->data;
 
     ethhdr_t *frame = mac_hdr(skb);
