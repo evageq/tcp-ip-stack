@@ -12,6 +12,10 @@
 
 extern bool SHELL_DEBUG;
 
+#define SET_FLAG(v, f) (f |= f)
+#define UNSET_FLAG(v, f) (f &= !f)
+#define CHECK_FLAG(v, f) (f & f)
+
 #define SHELL(s, ...)                               \
     ({                                              \
         char cmd[BUFCMDSZ];                         \

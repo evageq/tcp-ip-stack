@@ -1,5 +1,9 @@
 #include "ipv4.h"
+#include "dst.h"
+#include "route.h"
+#include "sock.h"
 #include "util.h"
+#include <string.h>
 
 inline int
 ip_headroom(const netdev_t *dev)
@@ -8,8 +12,9 @@ ip_headroom(const netdev_t *dev)
 }
 
 int
-ip_process(const netdev_t *dev, skb_t *skb)
+ip_process(skb_t *skb)
 {
+    const netdev_t *dev = skb->in_dev;
     if (skb->len < (int)sizeof(iphdr_t))
     {
         return -1;
@@ -31,7 +36,7 @@ ip_process(const netdev_t *dev, skb_t *skb)
         return -1;
     }
 
-    skb->sock = (struct sock){ .addr = iphdr->saddr };
+    skb->sock = (struct sock){ .daddr = iphdr->saddr };
     skb_pull(skb, ip_hdr_len);
     skb->transport_head = skb->data;
 
@@ -81,4 +86,25 @@ checksum(void *addr, int count)
         sum = (sum & 0xffff) + (sum >> 16);
 
     return ~sum;
+}
+
+int
+ip_send(struct sock *sk, skb_t *skb)
+{
+    iphdr_t *iphdr = skb_put(skb, sizeof(*iphdr));
+    const rtentry_t *rt = rt_lookup(sk->daddr);
+    skb->out_dev = rt->dev;
+
+    memset(iphdr, 0, sizeof(iphdr_t));
+    iphdr->version = 4;
+    iphdr->saddr = rt->dev->dev_addr;
+    iphdr->daddr = sk->daddr;
+    iphdr->ttl = 64;
+    iphdr->proto = ICMP_PROTO;
+    iphdr->csum = 0;
+    iphdr->csum = checksum(iphdr, sizeof(*iphdr));
+
+    dst_neigh_send(skb);
+
+    return 0;
 }

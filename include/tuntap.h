@@ -1,10 +1,10 @@
 #ifndef __TUNTAP__
 #define __TUNTAP__
 
+#include "netdev.h"
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <stdbool.h>
-#include "netdev.h"
 
 typedef struct tap_s
 {

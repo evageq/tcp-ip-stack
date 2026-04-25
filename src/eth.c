@@ -1,6 +1,7 @@
 #include "eth.h"
 #include <netinet/in.h>
 #include <stdio.h>
+#include <string.h>
 
 inline int
 eth_type(const skb_t *skb)
@@ -27,4 +28,10 @@ inline void *
 mac_hdr(skb_t *skb)
 {
     return skb->mac_head;
+}
+
+inline int
+mac_equal(const mac_t a, const mac_t b)
+{
+    return memcmp(a, b, sizeof(mac_t));
 }

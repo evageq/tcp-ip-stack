@@ -13,7 +13,7 @@ extern tap_t g_tap;
 extern netdev_t host;
 
 netdev_t
-netdev_init(const char *addr, const char *hwaddr)
+netdev_init(const char *addr, uint32_t netmask, const char *hwaddr)
 {
     netdev_t dev = { .valid = false };
     if (inet_pton(AF_INET, addr, &dev.dev_addr) != 1)
@@ -21,6 +21,8 @@ netdev_init(const char *addr, const char *hwaddr)
         error("Parsing inet address failed\n");
         return dev;
     }
+    dev.netmask = netmask;
+
     int write = sscanf(hwaddr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &dev.mac[0],
                        &dev.mac[1], &dev.mac[2], &dev.mac[3], &dev.mac[4],
                        &dev.mac[5]);
@@ -43,7 +45,7 @@ netdev_init(const char *addr, const char *hwaddr)
 int
 netdev_receive(skb_t *skb, netdev_t *host)
 {
-    skb->dev = host;
+    skb->in_dev = host;
     skb->mac_head = skb->data;
 
     if (skb->len < host->mac_head_len)
@@ -60,11 +62,11 @@ netdev_receive(skb_t *skb, netdev_t *host)
     {
         case ETH_P_ARP:
         {
-            return arp_process(host, skb);
+            return arp_process(skb);
         }
         case ETH_P_IP:
         {
-            return ip_process(host, skb);
+            return ip_process(skb);
         }
         default:
         {
@@ -75,15 +77,17 @@ netdev_receive(skb_t *skb, netdev_t *host)
 }
 
 void
-netdev_send(const netdev_t *out_dev, skb_t *skb, const mac_t dst, int proto)
+netdev_send(skb_t *skb, const mac_t dst, int ether_type)
 {
-    const netdev_t *host = out_dev;
+    const netdev_t *dev = skb->out_dev;
+    skb_push(skb, dev->mac_head_len);
+
     skb->mac_head = skb->data;
 
     ethhdr_t *frame = mac_hdr(skb);
-    memcpy(frame->dmac, dst, host->mac_len);
-    memcpy(frame->smac, host->mac, host->mac_len);
-    frame->ether_type = htons(proto);
+    memcpy(frame->dmac, dst, dev->mac_len);
+    memcpy(frame->smac, dev->mac, dev->mac_len);
+    frame->ether_type = htons(ether_type);
 
     tap_write(&g_tap, skb->len, skb->data);
 }

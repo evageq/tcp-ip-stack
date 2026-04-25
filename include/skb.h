@@ -5,10 +5,13 @@
 #include <stddef.h>
 
 typedef struct netdev_s netdev_t;
+typedef struct rtentry_s rtentry_t;
 
 typedef struct skb_s
 {
-    netdev_t *dev;
+    netdev_t *in_dev;
+    netdev_t *out_dev;
+    rtentry_t *rt;
     unsigned char *head;
     unsigned char *data;
     unsigned char *tail;

@@ -70,7 +70,7 @@ tap_create(const char *dev, const char *addr, const char *hwaddr)
 
     strcpy(tap.name, ifr.ifr_name);
 
-    tap.netdev = netdev_init(addr, hwaddr);
+    tap.netdev = netdev_init(addr, 0xffffffff, hwaddr);
 
     // wait for udev events
     // refacotr to use with libudev

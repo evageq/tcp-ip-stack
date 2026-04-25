@@ -21,5 +21,6 @@ int eth_type(const skb_t *skb);
 char *mac2str(const mac_t mac, size_t n, char buf[n]);
 void *mac_hdr(skb_t *skb);
 int mac_hdr_len(const netdev_t *dev);
+int mac_equal(const mac_t a, const mac_t b);
 
 #endif // __ETH__
