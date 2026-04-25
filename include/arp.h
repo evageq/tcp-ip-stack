@@ -5,6 +5,8 @@
 #include "netdev.h"
 #include "tll.h"
 
+#define ARP_CACHE_INIT() tll_init()
+
 typedef enum arp_codes_e
 {
     ARP_REQUEST = 1,
@@ -34,16 +36,18 @@ typedef struct arp_record_s
     mac_t hwa;
     uint32_t flags;
     uint32_t mask;
+    netdev_t *dev;
 } arp_record_t;
 
 typedef tll_type(arp_record_t, arp_cache_s) arp_cache_t;
 
-int arp_cache_update(arp_cache_t *cache, arp_record_t *arp_record,
+int arp_cache_update(arp_record_t *arp_record, netdev_t *dev,
                      const arphdr_t *frame);
-int arp_cache_merge(arp_cache_t *cache, const arphdr_t *frame);
-arp_record_t *arp_cache_hit(const arp_cache_t *cache,
-                            const arphdr_t *arp_hdr);
-int arp_process(const netdev_t *netdev, skb_t *skb);
+int arp_cache_merge(netdev_t *dev, const arphdr_t *frame);
+arp_record_t *arp_cache_hit(const arphdr_t *arp_hdr);
+int arp_process(skb_t *skb);
 arphdr_t *arp_hdr(const skb_t *skb);
+const mac_t *arp_get_hw_addr(uint32_t addr);
+void arp_request(const netdev_t *dev, uint32_t addr);
 
 #endif // __ARP__
