@@ -72,7 +72,5 @@ icmp_echo_response(skb_t *skb_request)
 
     ip_send(&sk, skb_response);
 
-    skb_free(skb_response);
-
     return 0;
 }

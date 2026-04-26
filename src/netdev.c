@@ -1,3 +1,4 @@
+#include "skbqueue.h"
 #include "netdev.h"
 #include "arp.h"
 #include "ipv4.h"
@@ -11,6 +12,7 @@
 
 extern tap_t g_tap;
 extern netdev_t host;
+extern skb_queue_t txq;
 
 netdev_t
 netdev_init(const char *addr, uint32_t netmask, const char *hwaddr)
@@ -45,6 +47,8 @@ netdev_init(const char *addr, uint32_t netmask, const char *hwaddr)
 int
 netdev_receive(skb_t *skb, netdev_t *host)
 {
+    int ret = 0;
+
     skb->in_dev = host;
     skb->mac_head = skb->data;
 
@@ -73,18 +77,23 @@ netdev_receive(skb_t *skb, netdev_t *host)
     {
         case ETH_P_ARP:
         {
-            return arp_process(skb);
+            ret = arp_process(skb);
+            break;
         }
         case ETH_P_IP:
         {
-            return ip_process(skb);
+            ret = ip_process(skb);
+            break;
         }
         default:
         {
             debug("Unknown packet type %d", skb->protocol);
-            return -1;
+            ret = -1;
+            break;
         }
     }
+
+    return ret;
 }
 
 void
@@ -100,5 +109,5 @@ netdev_send(skb_t *skb, const mac_t dst, int ether_type)
     memcpy(frame->smac, dev->mac, dev->mac_len);
     frame->ether_type = htons(ether_type);
 
-    tap_write(&g_tap, skb->len, skb->data);
+    skb_enqueue(skb, &txq);
 }

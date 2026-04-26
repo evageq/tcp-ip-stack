@@ -30,7 +30,7 @@ extern bool SHELL_DEBUG;
 #define error(...) _error(__FILE__, __LINE__, __VA_ARGS__)
 #define debug(...) _debug(__FILE__, __LINE__, __VA_ARGS__)
 
-#define LENGTH(a) (sizeof(a) / sizeof(a[0]))
+#define LENGTH(a) (sizeof((a)) / sizeof((a)[0]))
 
 #define MAX(a, b)                  \
     ({                             \

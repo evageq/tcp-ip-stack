@@ -17,10 +17,9 @@ typedef struct skb_queue_s
 
 void skb_enqueue(skb_t *skb, skb_queue_t *q);
 skb_t *skb_dequeue(skb_queue_t *q);
+int skb_queues_init(void);
 
 thread_start_t thread_rx_queue;
 thread_start_t thread_tx_queue;
-
-thread_init_t thread_rx_queue_init;
 
 #endif // __SKB_QUEUE_H__

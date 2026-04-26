@@ -70,6 +70,8 @@ tap_create(const char *dev, const char *addr, const char *hwaddr)
 
     strcpy(tap.name, ifr.ifr_name);
 
+    debug("Created tap: %s", tap.name);
+
     tap.netdev = netdev_init(addr, 0xffffffff, hwaddr);
 
     // wait for udev events

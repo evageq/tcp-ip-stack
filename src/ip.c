@@ -88,9 +88,11 @@ checksum(void *addr, int count)
     return ~sum;
 }
 
-void
+int
 ip_send(struct sock *sk, skb_t *skb)
 {
+    int ret = 0;
+
     iphdr_t *iphdr = skb_put(skb, sizeof(*iphdr));
     const rtentry_t *rt = rt_lookup(sk->daddr);
     skb->out_dev = rt->dev;
@@ -104,5 +106,11 @@ ip_send(struct sock *sk, skb_t *skb)
     iphdr->csum = 0;
     iphdr->csum = checksum(iphdr, sizeof(*iphdr));
 
-    dst_neigh_send(skb);
+    ret = dst_neigh_send(skb);
+    if (ret < 0)
+    {
+        skb_free(skb);
+    }
+
+    return ret;
 }

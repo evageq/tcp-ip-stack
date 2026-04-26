@@ -34,13 +34,14 @@ mac_hdr(skb_t *skb)
 inline int
 mac_equal(const mac_t *a, const mac_t *b)
 {
-    return memcmp(a, b, sizeof(mac_t));
+    return memcmp(a, b, sizeof(mac_t)) == 0;
 }
 
 bool
 mac_recv_check_host(skb_t *skb)
 {
     mac_t *mac = &mac_hdr(skb)->dmac;
-    return mac_equal(mac, &skb->in_dev->mac)
-           || mac_equal(mac, &skb->in_dev->bcast_addr);
+    bool is_bcast = mac_equal(mac, &skb->in_dev->bcast_addr);
+    bool is_eq = mac_equal(mac, &skb->in_dev->mac);
+    return is_bcast || is_eq;
 }

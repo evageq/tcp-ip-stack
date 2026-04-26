@@ -52,7 +52,17 @@ net_init()
 static int
 stack_init()
 {
-    net_init();
+    if (net_init() < 0)
+    {
+        return -1;
+    }
+
+    if (skb_queues_init() < 0)
+    {
+        tap_close(&g_tap);
+        return -1;
+    }
+
     return 0;
 }
 
@@ -70,14 +80,7 @@ thread_core(void *arg)
 {
     while (true)
     {
-        sem_wait(&rxq.items_sem);
-        pthread_mutex_lock(&rxq.lock);
-
         skb_t *skb = skb_dequeue(&rxq);
-
-        pthread_mutex_unlock(&rxq.lock);
-        sem_post(&rxq.slots_sem);
-
         netdev_receive(skb, &host);
         skb_free(skb);
     }
@@ -101,15 +104,25 @@ stack_free()
     tap_close(&g_tap);
     fflush(stdout);
     fflush(stderr);
-    getc(stdin);
 }
 
 int
 main(int argc, char *argv[])
 {
-    stack_init();
-    thread_init();
-    stack_free();
+    if (stack_init() < 0)
+    {
+        return -1;
+    }
+
+    if (thread_init() < 0)
+    {
+        stack_free();
+        return -1;
+    }
+
+    pthread_join(threads[THREAD_CORE], NULL);
+    pthread_join(threads[THREAD_RX_QUEUE], NULL);
+    pthread_join(threads[THREAD_TX_QUEUE], NULL);
 
     return 0;
 }

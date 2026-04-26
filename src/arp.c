@@ -178,7 +178,6 @@ arp_process(skb_t *skb)
                                    ARP_REPLY, ntohs(arp_head->htype),
                                    ntohs(arp_head->ptype));
                     arp_send(skb, arp_head->sha);
-                    skb_free(skb);
                 }
             }
         }

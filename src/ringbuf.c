@@ -22,7 +22,7 @@ ring_pop(ring_buffer_t *ring)
     assert(ring->n > 0);
 
     int i_r = ring->i_r;
-    skb_t *skb = ring->skbs[i_r] = skb;
+    skb_t *skb = ring->skbs[i_r];
     ring->i_r = (i_r + 1) % cap;
     --ring->n;
 
