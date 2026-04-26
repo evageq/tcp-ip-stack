@@ -18,7 +18,7 @@ BEAR := bear $(BEAR_OPTS) --
 
 CC := clang
 
-LDLIBS := 
+LDLIBS := -lpthread
 LDFLAGS := -fuse-ld=mold
 
 DEPFLAGS := -MP -MD

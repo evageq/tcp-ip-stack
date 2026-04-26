@@ -57,8 +57,8 @@ int
 icmp_echo_response(skb_t *skb_request)
 {
     skb_t *skb_response
-        = skb_alloc(ip_headroom(skb_request->dev) + icmp4_len(skb_request));
-    skb_reserve(skb_response, ip_headroom(skb_request->dev));
+        = skb_alloc(ip_headroom(skb_request->in_dev) + icmp4_len(skb_request));
+    skb_reserve(skb_response, ip_headroom(skb_request->in_dev));
 
     struct sock sk;
     sk.daddr = ip_hdr(skb_request)->daddr;

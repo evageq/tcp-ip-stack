@@ -48,6 +48,7 @@ arp_record_t *arp_cache_hit(const arphdr_t *arp_hdr);
 int arp_process(skb_t *skb);
 arphdr_t *arp_hdr(const skb_t *skb);
 const mac_t *arp_get_hw_addr(uint32_t addr);
-void arp_request(const netdev_t *dev, uint32_t addr);
+void arp_request(netdev_t *dev, uint32_t addr);
+int arp_hdr_len(const netdev_t *dev);
 
 #endif // __ARP__

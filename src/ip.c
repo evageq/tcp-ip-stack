@@ -88,7 +88,7 @@ checksum(void *addr, int count)
     return ~sum;
 }
 
-int
+void
 ip_send(struct sock *sk, skb_t *skb)
 {
     iphdr_t *iphdr = skb_put(skb, sizeof(*iphdr));
@@ -105,6 +105,4 @@ ip_send(struct sock *sk, skb_t *skb)
     iphdr->csum = checksum(iphdr, sizeof(*iphdr));
 
     dst_neigh_send(skb);
-
-    return 0;
 }

@@ -22,13 +22,13 @@ arp_send(skb_t *skb, const mac_t dst)
 }
 
 static skb_t *
-arp_make(const netdev_t *dev, const unsigned char *spa,
-         const unsigned char *tpa, const unsigned char *sha,
-         const unsigned char *tha, int opcode, int htype, int ptype)
+arp_make(netdev_t *dev, const unsigned char *spa, const unsigned char *tpa,
+         const unsigned char *sha, const unsigned char *tha, int opcode,
+         int htype, int ptype)
 {
     skb_t *skb = skb_alloc(arp_hdr_len(dev) + mac_hdr_len(dev));
     skb_reserve(skb, arp_hdr_len(dev) + mac_hdr_len(dev));
-    skb->out_dev = (netdev_t *)dev;
+    skb->out_dev = dev;
     skb->protocol = htons(ETH_P_ARP); // FIXME ntohs or htons
     arphdr_t *arp = skb_push(skb, arp_hdr_len(dev));
     if (spa == NULL)
@@ -62,7 +62,7 @@ arp_make(const netdev_t *dev, const unsigned char *spa,
 }
 
 void
-arp_request(const netdev_t *dev, uint32_t addr)
+arp_request(netdev_t *dev, uint32_t addr)
 {
     skb_t *skb = arp_make(dev, (unsigned char *)&dev->dev_addr,
                           (unsigned char *)&addr, (unsigned char *)&dev->mac,
@@ -152,7 +152,7 @@ arp_cache_merge(netdev_t *dev, const arphdr_t *frame)
 int
 arp_process(skb_t *skb)
 {
-    const netdev_t *host = skb->in_dev;
+    netdev_t *host = skb->in_dev;
     if (skb->len < (int)sizeof(arphdr_t))
     {
         debug("Short ARP packet, len %d", skb->len);
@@ -165,7 +165,7 @@ arp_process(skb_t *skb)
     {
         if (ntohs(arp_head->ptype) == 0x0800 && arp_head->plen == 4)
         {
-            arp_cache_merge(&g_arp_cache, skb->in_dev, arp_head);
+            arp_cache_merge(skb->in_dev, arp_head);
 
             if (arp_head->tpa == host->dev_addr)
             {
@@ -177,7 +177,7 @@ arp_process(skb_t *skb)
                                    (unsigned char *)&host->mac, arp_head->sha,
                                    ARP_REPLY, ntohs(arp_head->htype),
                                    ntohs(arp_head->ptype));
-                    arp_send(host, skb, arp_head->sha);
+                    arp_send(skb, arp_head->sha);
                     skb_free(skb);
                 }
             }

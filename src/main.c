@@ -1,11 +1,15 @@
 #include "eth.h"
 #include "skb.h"
+#include "skbqueue.h"
+#include "thread.h"
 #include "tuntap.h"
 #include "util.h"
 #include <arpa/inet.h>
 #include <assert.h>
 #include <linux/if_tun.h>
 #include <net/if.h>
+#include <pthread.h>
+#include <semaphore.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -15,16 +19,20 @@
 #include <sys/select.h>
 #include <unistd.h>
 
+extern skb_queue_t rxq;
+extern skb_queue_t txq;
+
 tap_t g_tap;
 bool SHELL_DEBUG = true;
 netdev_t host;
+
+pthread_t threads[THREAD_MAX];
 
 static int
 net_init()
 {
     // https://stackoverflow.com/questions/79758511/get-tap-device-mac-address
-    g_tap
-        = tap_create("tap%d", "192.168.17.9", 0xffffff00, "2a:e9:ea:46:21:70");
+    g_tap = tap_create("tap%d", "192.168.17.9", "2a:e9:ea:46:21:70");
     if (g_tap.valid == false)
     {
         error("Failed to init tap %s", g_tap.name);
@@ -48,26 +56,41 @@ stack_init()
     return 0;
 }
 
-static int
-netdev_rx_loop()
+int
+thread_create(int ttype, thread_start_t *f)
 {
-    while (1)
-    {
-        int ret = 0;
-        uint8_t buf[BUF_READ_LEN];
-        int bytes_read = tap_read(&g_tap, LENGTH(buf), buf);
-        if (bytes_read < 0)
-        {
-            error("Failed tap_read");
-            continue;
-        }
+    int ret = 0;
+    ret = pthread_create(&threads[ttype], NULL, f, NULL);
+    assert(ret == 0);
+    return ret;
+}
 
-        skb_t *skb = skb_alloc(bytes_read);
-        skb_put_data(skb, buf, bytes_read);
-        ret = netdev_receive(skb, &host);
-        (void)ret;
+void *
+thread_core(void *arg)
+{
+    while (true)
+    {
+        sem_wait(&rxq.items_sem);
+        pthread_mutex_lock(&rxq.lock);
+
+        skb_t *skb = skb_dequeue(&rxq);
+
+        pthread_mutex_unlock(&rxq.lock);
+        sem_post(&rxq.slots_sem);
+
+        netdev_receive(skb, &host);
         skb_free(skb);
     }
+
+    return 0;
+}
+
+static int
+thread_init()
+{
+    thread_create(THREAD_CORE, &thread_core);
+    thread_create(THREAD_RX_QUEUE, &thread_rx_queue);
+    thread_create(THREAD_TX_QUEUE, &thread_tx_queue);
 
     return 0;
 }
@@ -85,7 +108,7 @@ int
 main(int argc, char *argv[])
 {
     stack_init();
-    netdev_rx_loop();
+    thread_init();
     stack_free();
 
     return 0;

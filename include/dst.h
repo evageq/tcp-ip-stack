@@ -3,6 +3,6 @@
 
 #include "skb.h"
 
-int dest_neigh_send(skb_t *skb);
+int dst_neigh_send(skb_t *skb);
 
 #endif // __DST_H__

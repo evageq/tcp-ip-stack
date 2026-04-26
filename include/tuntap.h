@@ -6,6 +6,8 @@
 #include <net/if.h>
 #include <stdbool.h>
 
+#define PKT_BUF_SIZE 2048
+
 typedef struct tap_s
 {
     netdev_t netdev;
