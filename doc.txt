@@ -1,0 +1,2 @@
+  - RX path: caller owns, protocol layers borrow.
+  - TX path: send functions consume.
