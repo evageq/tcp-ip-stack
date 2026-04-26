@@ -19,8 +19,9 @@ typedef struct ethhdr_s
 
 int eth_type(const skb_t *skb);
 char *mac2str(const mac_t mac, size_t n, char buf[n]);
-void *mac_hdr(skb_t *skb);
+ethhdr_t *mac_hdr(skb_t *skb);
 int mac_hdr_len(const netdev_t *dev);
-int mac_equal(const mac_t a, const mac_t b);
+int mac_equal(const mac_t *a, const mac_t *b);
+bool mac_recv_check_host(skb_t *skb);
 
 #endif // __ETH__

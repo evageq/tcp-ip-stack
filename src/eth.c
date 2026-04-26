@@ -1,4 +1,5 @@
 #include "eth.h"
+#include "netdev.h"
 #include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
@@ -24,14 +25,22 @@ mac_hdr_len(const netdev_t *dev)
     return sizeof(ethhdr_t);
 }
 
-inline void *
+inline ethhdr_t *
 mac_hdr(skb_t *skb)
 {
-    return skb->mac_head;
+    return (ethhdr_t *)skb->mac_head;
 }
 
 inline int
-mac_equal(const mac_t a, const mac_t b)
+mac_equal(const mac_t *a, const mac_t *b)
 {
     return memcmp(a, b, sizeof(mac_t));
+}
+
+bool
+mac_recv_check_host(skb_t *skb)
+{
+    mac_t *mac = &mac_hdr(skb)->dmac;
+    return mac_equal(mac, &skb->in_dev->mac)
+           || mac_equal(mac, &skb->in_dev->bcast_addr);
 }

@@ -54,6 +54,17 @@ netdev_receive(skb_t *skb, netdev_t *host)
         return -1;
     }
 
+    // check is packet mine
+    if (mac_recv_check_host(skb) == true)
+    {
+        print_hex_packet(SKB_CAP(skb), skb->head, SKB_CAP(skb));
+    }
+    else
+    {
+        // drop packet
+        return -1;
+    }
+
     skb->protocol = eth_type(skb);
     skb_pull(skb, host->mac_head_len);
     skb->network_head = skb->data;

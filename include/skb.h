@@ -4,6 +4,8 @@
 #include "sock.h"
 #include <stddef.h>
 
+#define SKB_CAP(p_skb) (p_skb->end - p_skb->head)
+
 typedef struct netdev_s netdev_t;
 typedef struct rtentry_s rtentry_t;
 
