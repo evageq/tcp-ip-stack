@@ -70,10 +70,9 @@ void *
 skb_push(skb_t *skb, size_t len)
 {
     _skb_invariant(skb);
-
     assert(skb->data - len >= skb->head);
-    skb->data -= len;
 
+    skb->data -= len;
     skb->len = _skb_len(skb);
 
     _skb_invariant(skb);
@@ -85,6 +84,7 @@ skb_put(skb_t *skb, size_t len)
 {
     _skb_invariant(skb);
     assert(skb->tail + len <= skb->end);
+
     void *pos = skb->tail;
     skb->tail += len;
     skb->len = _skb_len(skb);
@@ -98,6 +98,7 @@ skb_pull(skb_t *skb, size_t len)
 {
     _skb_invariant(skb);
     assert(skb->data + len <= skb->tail);
+
     skb->data += len;
     skb->len = _skb_len(skb);
 
@@ -109,6 +110,7 @@ void
 skb_free(skb_t *skb)
 {
     _skb_invariant(skb);
+
     if (skb->refcnt <= 1)
     {
         free(skb->head);

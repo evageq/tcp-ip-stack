@@ -1,4 +1,5 @@
 #include "eth.h"
+#include "route.h"
 #include "skb.h"
 #include "skbqueue.h"
 #include "thread.h"
@@ -32,7 +33,7 @@ static int
 net_init()
 {
     // https://stackoverflow.com/questions/79758511/get-tap-device-mac-address
-    g_tap = tap_create("tap%d", "192.168.17.9", "2a:e9:ea:46:21:70");
+    g_tap = tap_create("tap%d", "10.0.0.1", 0xffffff00, "2a:e9:ea:46:21:70");
     if (g_tap.valid == false)
     {
         error("Failed to init tap %s", g_tap.name);
@@ -46,6 +47,8 @@ net_init()
     host = netdev_init("10.0.0.4", 0xffffff00, "2a:e9:ea:46:21:71");
 
     tap_up(&g_tap);
+    tap_setroute(&g_tap);
+
     return 0;
 }
 
@@ -56,6 +59,8 @@ stack_init()
     {
         return -1;
     }
+
+    rt_init();
 
     if (skb_queues_init() < 0)
     {

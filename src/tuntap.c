@@ -1,4 +1,5 @@
 #include "tuntap.h"
+#include "ipv4.h"
 #include "util.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -32,8 +33,12 @@ tap_read(const tap_t *tap, size_t n, uint8_t buf[n])
 int
 tap_setaddr(const tap_t *tap)
 {
-    return SHELL("ip addr add %s dev %s", inet_ntoa(tap->netdev.in_addr),
-                 tap->name);
+    char *tap_addr_str = inet_ntoa(tap->netdev.in_addr);
+    int tap_prefix_len = mask2prefix_len(tap->netdev.netmask);
+    const char *tap_name = tap->name;
+
+    return SHELL("ip addr add %s/%d dev %s", tap_addr_str, tap_prefix_len,
+                 tap_name);
 }
 
 int
@@ -44,8 +49,23 @@ tap_sethwaddr(const tap_t *tap)
                  mac2str(tap->netdev.mac, LENGTH(mac_str), mac_str));
 }
 
+int
+tap_setroute(const tap_t *tap)
+{
+    char *tap_addr_str = inet_ntoa(tap->netdev.in_addr);
+    int tap_prefix_len = mask2prefix_len(tap->netdev.netmask);
+    uint32_t tap_prefix = ntohl(tap->netdev.dev_addr) & tap->netdev.netmask;
+    struct in_addr _tap_prefix = { .s_addr = htonl(tap_prefix) };
+    char *tap_prefix_str = inet_ntoa(_tap_prefix);
+    const char *tap_name = tap->name;
+
+    return SHELL("ip route add %s/%d dev %s", tap_prefix_str, tap_prefix_len,
+                 tap_name);
+}
+
 tap_t
-tap_create(const char *dev, const char *addr, const char *hwaddr)
+tap_create(const char *dev, const char *addr, uint32_t mask,
+           const char *hwaddr)
 {
     tap_t tap = { .valid = false };
 
@@ -72,7 +92,7 @@ tap_create(const char *dev, const char *addr, const char *hwaddr)
 
     debug("Created tap: %s", tap.name);
 
-    tap.netdev = netdev_init(addr, 0xffffffff, hwaddr);
+    tap.netdev = netdev_init(addr, mask, hwaddr);
 
     // wait for udev events
     // refacotr to use with libudev

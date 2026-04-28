@@ -68,7 +68,6 @@ arp_request(netdev_t *dev, uint32_t addr)
                           (unsigned char *)&addr, (unsigned char *)&dev->mac,
                           NULL, ARP_REQUEST, 1, 0x0800);
     arp_send(skb, dev->bcast_addr);
-    skb_free(skb);
 }
 
 const mac_t *

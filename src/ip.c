@@ -1,9 +1,15 @@
-#include "ipv4.h"
 #include "dst.h"
+#include "ipv4.h"
 #include "route.h"
 #include "sock.h"
 #include "util.h"
 #include <string.h>
+
+inline int
+mask2prefix_len(uint32_t mask)
+{
+    return __builtin_popcount(mask);
+}
 
 inline int
 ip_headroom(const netdev_t *dev)
@@ -22,9 +28,10 @@ ip_process(skb_t *skb)
 
     skb->network_head = skb->data;
     iphdr_t *iphdr = ip_hdr(skb);
-    int ip_hdr_len = iphdr->ihl * 4;
+    int version = (iphdr->ver_ihl & 0xf0) >> 4;
+    int ip_hdr_len = (iphdr->ver_ihl & 0x0f) * 4;
 
-    if (iphdr->version != 4)
+    if (version != 4)
     {
         debug("Unsupported ip version");
         return -1;
@@ -93,16 +100,21 @@ ip_send(struct sock *sk, skb_t *skb)
 {
     int ret = 0;
 
-    iphdr_t *iphdr = skb_put(skb, sizeof(*iphdr));
-    const rtentry_t *rt = rt_lookup(sk->daddr);
+    skb->network_head = skb_push(skb, sizeof(iphdr_t));
+
+    iphdr_t *iphdr = ip_hdr(skb);
+    rtentry_t *rt = rt_lookup(sk->daddr);
+    skb->rt = rt;
     skb->out_dev = rt->dev;
 
     memset(iphdr, 0, sizeof(iphdr_t));
-    iphdr->version = 4;
+    iphdr->ver_ihl = (4 << 4) | (5);
     iphdr->saddr = rt->dev->dev_addr;
     iphdr->daddr = sk->daddr;
     iphdr->ttl = 64;
     iphdr->proto = ICMP_PROTO;
+    iphdr->len = htons(skb->len);
+    iphdr->flags_foffset = htons((1 << 14));
     iphdr->csum = 0;
     iphdr->csum = checksum(iphdr, sizeof(*iphdr));
 

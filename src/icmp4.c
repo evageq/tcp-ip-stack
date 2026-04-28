@@ -7,7 +7,7 @@ inline int
 icmp4_len(skb_t *skb)
 {
     iphdr_t *iphdr = ip_hdr(skb);
-    return ntohs(iphdr->len) - iphdr->ihl * 4;
+    return ntohs(iphdr->len) - ((iphdr->ver_ihl & 0x0f) * 4);
 }
 
 inline icmp4_t *
@@ -61,11 +61,15 @@ icmp_echo_response(skb_t *skb_request)
     skb_reserve(skb_response, ip_headroom(skb_request->in_dev));
 
     struct sock sk;
-    sk.daddr = ip_hdr(skb_request)->daddr;
+    sk.daddr = ip_hdr(skb_request)->saddr;
 
-    icmp4_t *icmp_hdr = skb_put(skb_response, icmp4_len(skb_request));
+    skb_response->transport_head
+        = skb_put(skb_response, icmp4_len(skb_request));
+
+    icmp4_t *icmp_hdr = icmp4_hdr(skb_response);
     int icmp_len = icmp4_len(skb_request);
     memcpy(icmp_hdr, icmp4_hdr(skb_request), icmp4_len(skb_request));
+    icmp_hdr->type = 0;
     icmp_hdr->code = 0;
     icmp_hdr->csum = 0;
     icmp_hdr->csum = checksum(icmp_hdr, icmp_len);

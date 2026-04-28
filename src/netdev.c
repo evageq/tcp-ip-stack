@@ -61,7 +61,7 @@ netdev_receive(skb_t *skb, netdev_t *host)
     // check is packet mine
     if (mac_recv_check_host(skb) == true)
     {
-        print_hex_packet(SKB_CAP(skb), skb->head, SKB_CAP(skb));
+        print_hex_packet(SKB_CAP(skb), skb->head, SKB_CAP(skb), PACKET_DIR_IN);
     }
     else
     {
@@ -100,9 +100,7 @@ void
 netdev_send(skb_t *skb, const mac_t dst, int ether_type)
 {
     const netdev_t *dev = skb->out_dev;
-    skb_push(skb, dev->mac_head_len);
-
-    skb->mac_head = skb->data;
+    skb->mac_head = skb_push(skb, dev->mac_head_len);
 
     ethhdr_t *frame = mac_hdr(skb);
     memcpy(frame->dmac, dst, dev->mac_len);

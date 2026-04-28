@@ -12,9 +12,9 @@
 
 extern bool SHELL_DEBUG;
 
-#define SET_FLAG(v, f) (f |= f)
-#define UNSET_FLAG(v, f) (f &= !f)
-#define CHECK_FLAG(v, f) (f & f)
+#define SET_FLAG(var, flag) (var |= flag)
+#define UNSET_FLAG(var, flag) (var &= !flag)
+#define CHECK_FLAG(var, flag) ((var & flag) == flag)
 
 #define SHELL(s, ...)                               \
     ({                                              \
@@ -58,6 +58,14 @@ extern bool SHELL_DEBUG;
         memcpy((uint8_t *)_b, (uint8_t *)tmp, sz); \
     } while (0)
 
+enum packet_dir
+{
+    PACKET_DIR_IN,
+    PACKET_DIR_OUT,
+    PACKET_DIR_MAX,
+};
+
 void _error(const char *f, int line, const char *fmt, ...);
 void _debug(const char *f, int line, const char *fmt, ...);
-void print_hex_packet(size_t n, const uint8_t buf[n], int bytes_read);
+void print_hex_packet(size_t n, const uint8_t buf[n], int bytes_read,
+                      unsigned int dir);
