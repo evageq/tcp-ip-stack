@@ -7,13 +7,15 @@
 
 #define RT_TABLE_INIT() tll_init()
 
-#define RT_DEFAULT (1 << 0)
-#define RT_LOOPBACK (1 << 1)
-#define RT_DEV (1 << 2)
+#define RT_FLAGS_GATEWAY (1 << 0)
+#define RT_FLAGS_LOOP (1 << 1)
+#define RT_FLAGS_HOST (1 << 2)
 
 typedef struct rtentry_s
 {
-    uint32_t dst;
+    uint32_t prefix;
+    uint32_t mask;
+    uint32_t gateway;
     uint32_t flags;
     netdev_t *dev;
 } rtentry_t;
