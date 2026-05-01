@@ -1,5 +1,4 @@
 #include "skbqueue.h"
-#include "tuntap.h"
 #include "util.h"
 #include <assert.h>
 #include <errno.h>
@@ -8,13 +7,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-extern tap_t g_tap;
-extern netdev_t host;
-
-skb_queue_t rxq;
-skb_queue_t txq;
-
-static int
+int
 queue_init(skb_queue_t *q)
 {
     int ret = 0;
@@ -43,25 +36,6 @@ queue_init(skb_queue_t *q)
         error("Failed to init queue mutex");
         sem_destroy(&q->items_sem);
         sem_destroy(&q->slots_sem);
-        return -1;
-    }
-
-    return 0;
-}
-
-int
-skb_queues_init(void)
-{
-    if (queue_init(&rxq) < 0)
-    {
-        return -1;
-    }
-
-    if (queue_init(&txq) < 0)
-    {
-        pthread_mutex_destroy(&rxq.lock);
-        sem_destroy(&rxq.items_sem);
-        sem_destroy(&rxq.slots_sem);
         return -1;
     }
 
@@ -104,40 +78,4 @@ skb_dequeue(skb_queue_t *q)
     sem_post(&q->slots_sem);
 
     return skb;
-}
-
-void *
-thread_rx_queue(void *arg)
-{
-    while (true)
-    {
-        int ret = 0;
-        uint8_t buf[PKT_BUF_SIZE];
-        int bytes_read = tap_read(&g_tap, LENGTH(buf), buf);
-        if (bytes_read < 0)
-        {
-            error("Failed tap_read");
-            continue;
-        }
-
-        skb_t *skb = skb_alloc(bytes_read);
-        skb_put_data(skb, buf, bytes_read);
-        skb_enqueue(skb, &rxq);
-    }
-
-    return 0;
-}
-
-void *
-thread_tx_queue(void *arg)
-{
-    while (true)
-    {
-        skb_t *skb = skb_dequeue(&txq);
-        tap_write(&g_tap, skb->len, skb->data);
-        print_hex_packet(SKB_CAP(skb), skb->head, SKB_CAP(skb), PACKET_DIR_OUT);
-        skb_free(skb);
-    }
-
-    return 0;
 }

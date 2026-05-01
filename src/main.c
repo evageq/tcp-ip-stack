@@ -20,14 +20,72 @@
 #include <sys/select.h>
 #include <unistd.h>
 
-extern skb_queue_t rxq;
-extern skb_queue_t txq;
+skb_queue_t g_rxq;
+skb_queue_t g_txq;
+
+thread_start_t thread_rx_queue;
+thread_start_t thread_tx_queue;
 
 tap_t g_tap;
 bool SHELL_DEBUG = true;
 netdev_t host;
 
-pthread_t threads[THREAD_MAX];
+pthread_t g_threads[THREAD_MAX];
+
+int
+skb_queues_init(void)
+{
+    if (queue_init(&g_rxq) < 0)
+    {
+        return -1;
+    }
+
+    if (queue_init(&g_txq) < 0)
+    {
+        pthread_mutex_destroy(&g_rxq.lock);
+        sem_destroy(&g_rxq.items_sem);
+        sem_destroy(&g_rxq.slots_sem);
+        return -1;
+    }
+
+    return 0;
+}
+
+void *
+thread_rx_queue(void *arg)
+{
+    while (true)
+    {
+        int ret = 0;
+        uint8_t buf[PKT_BUF_SIZE];
+        int bytes_read = tap_read(&g_tap, LENGTH(buf), buf);
+        if (bytes_read < 0)
+        {
+            error("Failed tap_read");
+            continue;
+        }
+
+        skb_t *skb = skb_alloc(bytes_read);
+        skb_put_data(skb, buf, bytes_read);
+        skb_enqueue(skb, &g_rxq);
+    }
+
+    return 0;
+}
+
+void *
+thread_tx_queue(void *arg)
+{
+    while (true)
+    {
+        skb_t *skb = skb_dequeue(&g_txq);
+        tap_write(&g_tap, skb->len, skb->data);
+        print_hex_packet(SKB_CAP(skb), skb->head, SKB_CAP(skb), PACKET_DIR_OUT);
+        skb_free(skb);
+    }
+
+    return 0;
+}
 
 static int
 net_init()
@@ -75,7 +133,7 @@ int
 thread_create(int ttype, thread_start_t *f)
 {
     int ret = 0;
-    ret = pthread_create(&threads[ttype], NULL, f, NULL);
+    ret = pthread_create(&g_threads[ttype], NULL, f, NULL);
     assert(ret == 0);
     return ret;
 }
@@ -85,7 +143,7 @@ thread_core(void *arg)
 {
     while (true)
     {
-        skb_t *skb = skb_dequeue(&rxq);
+        skb_t *skb = skb_dequeue(&g_rxq);
         netdev_receive(skb, &host);
         skb_free(skb);
     }
@@ -125,9 +183,9 @@ main(int argc, char *argv[])
         return -1;
     }
 
-    pthread_join(threads[THREAD_CORE], NULL);
-    pthread_join(threads[THREAD_RX_QUEUE], NULL);
-    pthread_join(threads[THREAD_TX_QUEUE], NULL);
+    pthread_join(g_threads[THREAD_CORE], NULL);
+    pthread_join(g_threads[THREAD_RX_QUEUE], NULL);
+    pthread_join(g_threads[THREAD_TX_QUEUE], NULL);
 
     return 0;
 }

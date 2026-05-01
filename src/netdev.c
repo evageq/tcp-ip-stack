@@ -12,7 +12,7 @@
 
 extern tap_t g_tap;
 extern netdev_t host;
-extern skb_queue_t txq;
+extern skb_queue_t g_txq;
 
 netdev_t
 netdev_init(const char *addr, uint32_t netmask, const char *hwaddr)
@@ -107,5 +107,5 @@ netdev_send(skb_t *skb, const mac_t dst, int ether_type)
     memcpy(frame->smac, dev->mac, dev->mac_len);
     frame->ether_type = htons(ether_type);
 
-    skb_enqueue(skb, &txq);
+    skb_enqueue(skb, &g_txq);
 }
