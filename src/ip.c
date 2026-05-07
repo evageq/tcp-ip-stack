@@ -96,21 +96,21 @@ checksum(void *addr, int count)
 }
 
 int
-ip_send(struct sock *sk, skb_t *skb)
+ip_send(uint32_t daddr, skb_t *skb)
 {
     int ret = 0;
 
     skb->network_head = skb_push(skb, sizeof(iphdr_t));
 
     iphdr_t *iphdr = ip_hdr(skb);
-    rtentry_t *rt = rt_lookup(sk->daddr);
+    rtentry_t *rt = rt_lookup(daddr);
     skb->rt = rt;
     skb->out_dev = rt->dev;
 
     memset(iphdr, 0, sizeof(iphdr_t));
     iphdr->ver_ihl = (4 << 4) | (5);
     iphdr->saddr = rt->dev->dev_addr;
-    iphdr->daddr = sk->daddr;
+    iphdr->daddr = daddr;
     iphdr->ttl = 64;
     iphdr->proto = ICMP_PROTO;
     iphdr->len = htons(skb->len);

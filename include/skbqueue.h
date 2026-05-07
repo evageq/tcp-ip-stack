@@ -1,10 +1,11 @@
 #ifndef __SKB_QUEUE_H__
 #define __SKB_QUEUE_H__
 
-#include "thread.h"
 #include "ringbuf.h"
-#include "skb.h"
+#include "thread.h"
 #include <semaphore.h>
+
+typedef struct skb_s skb_t;
 
 typedef struct skb_queue_s
 {
@@ -17,7 +18,6 @@ typedef struct skb_queue_s
 
 void skb_enqueue(skb_t *skb, skb_queue_t *q);
 skb_t *skb_dequeue(skb_queue_t *q);
-int skb_queues_init(void);
 int queue_init(skb_queue_t *q);
 
 #endif // __SKB_QUEUE_H__

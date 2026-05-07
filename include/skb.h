@@ -1,13 +1,14 @@
 #ifndef __SKB_H__
 #define __SKB_H__
 
-#include "sock.h"
 #include <stddef.h>
 
 #define SKB_CAP(p_skb) (p_skb->end - p_skb->head)
 
 typedef struct netdev_s netdev_t;
 typedef struct rtentry_s rtentry_t;
+
+struct sock;
 
 typedef struct skb_s
 {
@@ -27,7 +28,7 @@ typedef struct skb_s
     int protocol;
     int len;
 
-    struct sock sock;
+    struct sock *sk;
 } skb_t;
 
 skb_t *skb_alloc(size_t len);

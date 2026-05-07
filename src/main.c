@@ -25,6 +25,7 @@ skb_queue_t g_txq;
 
 thread_start_t thread_rx_queue;
 thread_start_t thread_tx_queue;
+int skb_queues_init(void);
 
 tap_t g_tap;
 bool SHELL_DEBUG = true;
@@ -80,7 +81,8 @@ thread_tx_queue(void *arg)
     {
         skb_t *skb = skb_dequeue(&g_txq);
         tap_write(&g_tap, skb->len, skb->data);
-        print_hex_packet(SKB_CAP(skb), skb->head, SKB_CAP(skb), PACKET_DIR_OUT);
+        print_hex_packet(SKB_CAP(skb), skb->head, SKB_CAP(skb),
+                         PACKET_DIR_OUT);
         skb_free(skb);
     }
 

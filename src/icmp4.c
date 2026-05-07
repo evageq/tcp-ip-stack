@@ -60,9 +60,6 @@ icmp_echo_response(skb_t *skb_request)
         = skb_alloc(ip_headroom(skb_request->in_dev) + icmp4_len(skb_request));
     skb_reserve(skb_response, ip_headroom(skb_request->in_dev));
 
-    struct sock sk;
-    sk.daddr = ip_hdr(skb_request)->saddr;
-
     skb_response->transport_head
         = skb_put(skb_response, icmp4_len(skb_request));
 
@@ -74,7 +71,7 @@ icmp_echo_response(skb_t *skb_request)
     icmp_hdr->csum = 0;
     icmp_hdr->csum = checksum(icmp_hdr, icmp_len);
 
-    ip_send(&sk, skb_response);
+    ip_send(ip_hdr(skb_request)->saddr, skb_response);
 
     return 0;
 }

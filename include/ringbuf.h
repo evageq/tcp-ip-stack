@@ -1,7 +1,9 @@
 #ifndef __RING_BUF_H__
 #define __RING_BUF_H__
 
-#include "skb.h"
+#include <stddef.h>
+
+typedef struct skb_s skb_t;
 
 #define RING_BUF_MAX 512
 
