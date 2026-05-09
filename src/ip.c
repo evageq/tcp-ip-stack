@@ -43,7 +43,7 @@ ip_process(skb_t *skb)
         return -1;
     }
 
-    skb->sock = (struct sock){ .daddr = iphdr->saddr };
+    // skb->sock = (struct sock){ .daddr = iphdr->saddr };
     skb_pull(skb, ip_hdr_len);
     skb->transport_head = skb->data;
 

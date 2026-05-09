@@ -5,9 +5,11 @@
 #include "socket.h"
 #include <stdint.h>
 
+struct proto;
+
 struct sock
 {
-    family_t domain;
+    int family;
     int type;
     int protocol;
 
@@ -18,13 +20,23 @@ struct sock
 
     struct socket *sk_socket;
     skb_queue_t rxq;
+
+    struct proto *sk_prot; // protocol handler
 };
 
 struct proto
 {
     // init
+    // connect
+    // sendmsg
+    // recvmsg
+    // accept
+    // bind
+    // release
+    // get/set sockopt
     // close
-
 };
+
+struct sock *sk_alloc(int family, int protocol);
 
 #endif

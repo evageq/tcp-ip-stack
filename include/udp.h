@@ -20,8 +20,8 @@ typedef struct udphdr_s
 } __attribute__((packed)) udphdr_t;
 
 int udp_send(const void *buf, size_t len);
-int udp4_socket_send(socket_t *sk, const void *buf, size_t len);
-int udp4_socket_recv(socket_t *sk, void *buf, size_t len);
-int udp4_socket_close(socket_t *sk);
+int udp4_socket_send(struct sock *sk, const void *buf, size_t len);
+int udp4_socket_recv(struct sock *sk, void *buf, size_t len);
+int udp4_socket_close(struct sock *sk);
 
 #endif // __UDP_H__

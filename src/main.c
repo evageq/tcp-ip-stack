@@ -1,7 +1,9 @@
 #include "eth.h"
+#include "in.h"
 #include "route.h"
 #include "skb.h"
 #include "skbqueue.h"
+#include "socket.h"
 #include "thread.h"
 #include "tuntap.h"
 #include "util.h"
@@ -127,6 +129,8 @@ stack_init()
         tap_close(&g_tap);
         return -1;
     }
+
+    inet_init();
 
     return 0;
 }
