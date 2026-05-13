@@ -21,6 +21,7 @@ struct sock
     struct socket *sk_socket;
     skb_queue_t rxq;
 
+    struct _sockaddr sk_addr;
     struct proto *sk_prot; // protocol handler
 };
 
@@ -29,14 +30,15 @@ struct proto
     // init
     // connect
     // sendmsg
-    // recvmsg
+    int (*recvmsg)(struct sock *sk, struct _msghdr *m, size_t len);
     // accept
     // bind
     // release
     // get/set sockopt
     // close
+    size_t obj_size;
 };
 
-struct sock *sk_alloc(int family, int protocol);
+struct sock *sk_alloc(struct proto *prot, int family, int protocol);
 
 #endif

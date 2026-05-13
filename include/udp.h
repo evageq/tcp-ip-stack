@@ -6,6 +6,8 @@
  */
 
 #include "socket.h"
+#include "sock.h"
+#include "in.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -19,9 +21,11 @@ typedef struct udphdr_s
 
 } __attribute__((packed)) udphdr_t;
 
-int udp_send(const void *buf, size_t len);
-int udp4_socket_send(struct sock *sk, const void *buf, size_t len);
-int udp4_socket_recv(struct sock *sk, void *buf, size_t len);
-int udp4_socket_close(struct sock *sk);
+struct udp_sock
+{
+    struct inet_sock inet;
+};
+
+int udp_recvmsg(struct sock *sk, struct _msghdr *m, size_t len);
 
 #endif // __UDP_H__

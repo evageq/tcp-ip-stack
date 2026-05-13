@@ -1,12 +1,16 @@
 #include "udp.h"
-#include "sock.h"
 #include "skb.h"
 
-struct proto udp_prot;
+static inline struct udp_sock *
+udp_sk(struct sock *sk)
+{
+    return (struct udp_sock *)sk;
+}
 
 int
-udp4_socket_send(struct sock *sk, const void *buf, size_t len)
+udp_recvmsg(struct sock *sk, struct _msghdr *m, size_t len)
 {
-    // skb_t *skb = skb_alloc(L4_HEADROOM + len);
-    return 0;
+    struct udp_sock *up = udp_sk(sk);
 }
+
+struct proto udp_prot = { .obj_size = sizeof(struct udp_sock) };

@@ -1,8 +1,14 @@
 #include "socket.h"
 #include "util.h"
+#include <asm-generic/errno.h>
 #include <assert.h>
+#include <string.h>
 
 #define SOCKET_ID(tbl, sock) (sock - tbl)
+#define DECLARE_SOCKET(sockname, sockfd, sock_tbl) \
+    struct socket *sockname = &socket_tbl[sockfd]; \
+    if (sock->valid == false)                      \
+        return -1;
 
 #define socket_foreach(socket_table)                                      \
     for (struct socket *sock                                              \
@@ -94,4 +100,36 @@ _socket(int domain, int type, int protocol)
     af->create(new_sock, protocol);
 
     return (new_sock->valid = true, new_sockfd);
+}
+
+int
+_bind(int sockfd, const struct _sockaddr *saddr, size_t saddr_len)
+{
+    DECLARE_SOCKET(sock, sockfd, socket_tbl);
+
+    return sock->ops->bind(sock, saddr, saddr_len);
+}
+
+int
+_recvfrom(int sockfd, void *buf, size_t len, struct _sockaddr *saddr,
+          size_t saddr_len)
+{
+    DECLARE_SOCKET(sock, sockfd, socket_tbl);
+
+    struct _sockaddr_storage storage;
+    struct _msghdr m = { .saddr = (saddr ? &storage : NULL), .msg_buf = buf };
+
+    int ret = sock->ops->recvmsg(sock, &m, len);
+
+    if (ret != 0)
+    {
+        return ret;
+    }
+
+    if (saddr)
+    {
+        memcpy(saddr, &storage, saddr_len);
+    }
+
+    return 0;
 }

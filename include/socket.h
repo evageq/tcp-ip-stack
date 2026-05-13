@@ -10,10 +10,13 @@
 
 struct sock;
 struct socket;
+struct _sockaddr;
 struct sock_ops;
+struct _msghdr;
 struct proto;
 struct proto_ops;
-struct _msghdr;
+
+typedef int family_t;
 
 enum family_type_e
 {
@@ -29,7 +32,7 @@ enum sock_type_e
 
 struct net_proto_family
 {
-    int family;
+    family_t family;
     int (*create)(struct socket *sock, int protocol);
 };
 
@@ -42,12 +45,12 @@ enum sock_state_e
 struct socket
 {
     int state;
-    int family;
+    family_t family;
     int type;
     int protocol;
 
     struct sock *sk;
-    struct proto_ops *ops; // bsd sock api
+    struct proto_ops *ops;     // bsd sock api
     struct sock_ops *sock_ops; // try to mimic to linux file ops
 
     bool valid;
@@ -63,15 +66,15 @@ struct sock_ops
     // iopoll/poll
 };
 
-
 struct proto_ops
 {
     // release
-    // bind
+    int (*bind)(struct socket *sock, const struct _sockaddr *saddr,
+                size_t saddr_len);
     // connect
     // listen
     // sendmsg
-    // recvmsg
+    int (*recvmsg)(struct socket *sock, struct _msghdr *m, size_t len);
     // getsockopt
     // setsockopt
     // poll/ioctl?
@@ -80,12 +83,25 @@ struct proto_ops
 struct _msghdr
 {
     // ptr to sockaddr struct
+    void *saddr;
+
     // data buf
+    void *msg_buf;
+
     // data buf len
+    size_t msg_buf_len;
 };
 
 struct _sockaddr
 {
+    family_t family;
+    char data[14];
+};
+
+struct _sockaddr_storage
+{
+    family_t family;
+    char data[128];
 };
 
 typedef struct protosw
@@ -107,8 +123,9 @@ int _listen(int sockfd);
 int _accept(int sockfd);
 int _recv(int sockfd, void *buf, size_t len);
 int _send(int sockfd, const void *buf, size_t len);
-int _recvfrom(int sockfd, void *buf, size_t len, const struct _sockaddr *saddr,
+int _recvfrom(int sockfd, void *buf, size_t len, struct _sockaddr *saddr,
               size_t saddr_len);
+int _recvmsg(int sockfd, struct _msghdr *m, size_t len);
 int _sendto(int sockfd, const void *buf, size_t len,
             const struct _sockaddr *saddr, size_t saddr_len);
 int _close(int sockfd);
